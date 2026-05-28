@@ -1,0 +1,26 @@
+import { v2 as cloudinary } from 'cloudinary';
+import { CloudinaryStorage } from 'multer-storage-cloudinary';
+import multer from 'multer';
+import dotenv from 'dotenv';
+dotenv.config();
+
+// Configure Cloudinary with the credentials from .env
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET,
+});
+
+// Configure the storage engine for Multer
+const storage = new CloudinaryStorage({
+  cloudinary: cloudinary,
+  params: {
+    folder: 'project_camp_attachments', // Folder in your cloudinary account
+    allowed_formats: ['jpg', 'png', 'pdf', 'docx', 'txt', 'csv'],
+    // resource_type: 'auto' allows non-image files like PDFs to be uploaded
+    resource_type: 'auto'
+  },
+});
+
+export const upload = multer({ storage: storage });
+export { cloudinary };

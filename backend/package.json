@@ -1,0 +1,37 @@
+{
+  "name": "udemy_backend",
+  "version": "1.0.0",
+  "main": "server.js",
+  "type": "module",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node server.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "dependencies": {
+    "@google/genai": "^2.6.0",
+    "@huggingface/transformers": "^4.2.0",
+    "@socket.io/admin-ui": "^0.5.1",
+    "@xenova/transformers": "^2.17.2",
+    "bcrypt": "^6.0.0",
+    "cloudinary": "^1.41.3",
+    "cors": "^2.8.6",
+    "dotenv": "^17.4.2",
+    "drizzle-orm": "^0.45.2",
+    "express": "^5.2.1",
+    "jsonwebtoken": "^9.0.3",
+    "multer": "^2.1.1",
+    "multer-storage-cloudinary": "^4.0.0",
+    "node-cron": "^4.2.1",
+    "pg": "^8.20.0",
+    "socket.io": "^4.8.3"
+  },
+  "devDependencies": {
+    "@types/pg": "^8.20.0",
+    "drizzle-kit": "^0.31.10",
+    "tsx": "^4.21.0"
+  }
+}
