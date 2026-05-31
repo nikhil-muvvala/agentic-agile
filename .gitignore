@@ -26,3 +26,6 @@ tmp/
 # Frontend Build Output (if built from root)
 frontend/dist/
 frontend/build/
+
+# Docker
+docker-compose.yml

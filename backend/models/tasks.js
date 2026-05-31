@@ -2,7 +2,7 @@ import { pgTable, serial, varchar, text, integer, timestamp, pgEnum } from "driz
 import { projectsTable } from "./projects.js";
 import { usersTable } from "./User.js";
 
-export const taskStatusEnum = pgEnum("task_status", ["todo", "in_progress", "done"]);
+export const taskStatusEnum = pgEnum("task_status", ["todo", "in_progress", "blocked", "done"]);
 
 export const tasksTable = pgTable("tasks", {
     id: serial().primaryKey(),

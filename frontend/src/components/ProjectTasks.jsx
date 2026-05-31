@@ -165,12 +165,15 @@ const ProjectTasks = ({ projectId, userRole }) => {
 
   const handleSuggestAssignee = async () => {
     if (!title) return alert("Please enter a task title first!");
-    if (members.length === 0) return alert("No members in project!");
     try {
       setIsSuggestingAssignee(true);
-      const res = await api.post(`/tasks/${projectId}/suggest-assignee`, { title, description, members });
+      const res = await api.post(`/tasks/${projectId}/suggest-assignee`, { title, description });
       if (res.data.assigneeId) {
-        setAssigneeId(res.data.assigneeId.toString());
+        if (res.data.assigneeId === -1) {
+          alert("No one on the team matches this task's skill requirements or history!");
+        } else {
+          setAssigneeId(res.data.assigneeId.toString());
+        }
       }
     } catch (err) {
       alert(err.response?.data?.message || 'Error suggesting assignee');

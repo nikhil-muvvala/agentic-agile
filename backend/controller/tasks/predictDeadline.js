@@ -31,13 +31,17 @@ export const predictDeadline = async function(req, res) {
 
         let textResult = "";
         if (typeof aiResponse.text === 'function') {
-            textResult = aiResponse.text();
+            textResult = aiResponse.text() || "";
         } else {
-            textResult = aiResponse.text;
+            textResult = aiResponse.text || "";
         }
         
         textResult = textResult.trim();
-        const predictedDays = parseInt(textResult);
+        if (textResult.startsWith("```")) {
+            textResult = textResult.replace(/^```[a-z]*\n/i, "").replace(/\n```$/i, "").trim();
+        }
+        
+        const predictedDays = parseInt(textResult, 10);
 
         if (isNaN(predictedDays)) {
             // Fallback in case Gemini returns text by mistake

@@ -8,6 +8,7 @@ import taskRouter from "./router/taskRoutes.js";
 import subtaskRouter from "./router/subtaskRoutes.js";
 import noteRouter from "./router/noteRoutes.js";
 import notificationRouter from "./router/notificationRoutes.js";
+import userRouter from "./router/userRoutes.js";
 import cors from "cors";
 
 const app = express();
@@ -32,6 +33,7 @@ app.use("/api/v1/tasks", taskRouter);
 app.use("/api/v1/projects/:projectId/t/:taskId/subtasks", subtaskRouter);
 app.use("/api/v1/projects/:projectId/notes", noteRouter);
 app.use("/api/v1/notifications", notificationRouter);
+app.use("/api/v1/users", userRouter);
 server.listen(PORT, () => {
     console.log(`Server is running on port ${PORT}`);
 });
