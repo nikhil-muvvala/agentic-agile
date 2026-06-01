@@ -10,14 +10,16 @@ A next-generation, full-stack Kanban project management platform powered by **Re
 *   **Cloud Attachments:** Seamlessly upload and attach images/documents to tasks using Cloudinary.
 *   **Target Dates:** Built-in deadlines with visual warnings for overdue tasks.
 
-### 🤖 The "Agentic AI" Engine
-Unlike standard wrappers, this platform features an autonomous background agent and on-demand AI tools powered by `@google/genai` and local Machine Learning:
+### 🤖 Why this is better than Jira or Basecamp
+Most project management tools (like Jira, Trello, or Basecamp) are fundamentally just **dumb databases**. They act as digital whiteboards where a human Project Manager has to spend 15 hours a week manually grooming backlogs, checking capacities, and typing out standup reports. They *track* work, but they don't *manage* it.
 
-*   **🕵️ Background AI Gatekeeper:** Uses local Machine Learning (`Xenova/all-MiniLM-L6-v2`) to perform zero-cost semantic overlap analysis in the background. If you create a duplicate task, the AI wakes up, evaluates the context, and sends a real-time WebSocket Toast notification warning you.
-*   **✨ Predict Deadline:** AI analyzes a task's title and description to predict exactly how many days it will take to complete, automatically filling in your calendar.
-*   **✨ Suggest Assignee:** The AI acts as an Engineering Manager. It queries the database, analyzes the active workloads, historical experience, and roles of your team, and mathematically determines the best person for the job.
-*   **⚡ AI Task Breakdown:** Instantly breaks down complex tasks into manageable subtasks using generative AI.
-*   **📊 AI Standup Generator:** Automatically reads all activity in your project and generates a perfect "Daily Standup" summary of what the team accomplished and what is blocking progress.
+This platform is the first truly **Agentic Project Management Platform**. It features an autonomous background agent and a suite of on-demand AI tools powered by `@google/genai` (Gemini 2.5) and local Machine Learning that actively manage the project alongside you:
+
+1.  **🕵️ Background AI Gatekeeper (Local ML):** Uses local Machine Learning (`Xenova/all-MiniLM-L6-v2`) to perform zero-cost semantic overlap analysis in the background. If you try to create a duplicate bug ticket that someone else already logged, the AI intercepts it and sends a real-time WebSocket warning before the duplicate work is even started.
+2.  **🧠 The Skill-Memory Agent (Suggest Assignee):** Jira forces you to manually guess who is available. Our AI acts as a virtual Engineering Manager. Using **Function Calling**, the AI independently queries the PostgreSQL database, analyzes the team's active workloads, calculates mathematical capacity, evaluates their semantic history, and autonomously assigns the right person.
+3.  **📅 The Multi-Step Planning Agent (Project Health Advisor):** A background chron job that wakes up every morning at 9:00 AM, surveys the health of every project, evaluates the subtask progress of all at-risk tasks, and sends intelligent reassignment recommendations directly to the Project Admin's notification bell. 
+4.  **⚡ AI Task Breakdown:** Instead of spending an hour writing subtasks, a Product Manager can just type "Build Login Page", and the AI instantly generates the database schema, frontend UI, and API subtasks required to build it.
+5.  **📊 AI Standup Generator:** Automatically reads all activity in your project from the last 24 hours and generates a perfect "Daily Standup" summary of what the team accomplished and what is blocking progress.
 
 ---
 

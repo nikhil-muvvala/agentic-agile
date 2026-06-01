@@ -10,6 +10,7 @@ import noteRouter from "./router/noteRoutes.js";
 import notificationRouter from "./router/notificationRoutes.js";
 import userRouter from "./router/userRoutes.js";
 import cors from "cors";
+import { initCronJobs } from "./cron/projectHealth.js";
 
 const app = express();
 const server = http.createServer(app);
@@ -18,6 +19,9 @@ const PORT = 3000;
 // Initialize Socket.io
 initSocket(server);
 app.use(cors());
+
+// Initialize Background Cron Jobs
+initCronJobs();
 
 app.get("/api/v1/healthcheck", (req, res) => {
     res.status(200).json({

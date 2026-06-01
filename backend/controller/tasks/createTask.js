@@ -20,6 +20,7 @@ export const createTask = async function(req, res) {
             description,
             status: "todo", 
             assigneeId: assigneeId || null,
+            createdBy: req.user.id,
             targetDate: targetDate ? new Date(targetDate) : null
         }).returning();
 

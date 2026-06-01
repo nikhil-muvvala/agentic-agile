@@ -12,6 +12,7 @@ export const tasksTable = pgTable("tasks", {
     status: taskStatusEnum().default("todo").notNull(),
     // Using restrict as you requested! Making it nullable so tasks don't have to be assigned immediately.
     assigneeId: integer().references(() => usersTable.id, { onDelete: "restrict" }),
+    createdBy: integer().references(() => usersTable.id, { onDelete: "restrict" }),
     createdAt: timestamp().defaultNow().notNull(),
     updatedAt: timestamp().defaultNow().$onUpdateFn(() => new Date()).notNull(),
     targetDate: timestamp('target_date')
