@@ -7,5 +7,6 @@ import { subtasksTable } from "./subtasks.js";
 import { notesTable } from "./notes.js";
 import { notificationsTable } from "./notifications.js";
 import { taskCompletionsTable } from "./taskCompletions.js";
+import { projectKnowledgeTable } from "./memory.js";
 
-export { usersTable, projectsTable, projectMembers, roleEnum, tasksTable, taskStatusEnum, taskAttachmentsTable, subtasksTable, notesTable, notificationsTable, taskCompletionsTable };
+export { usersTable, projectsTable, projectMembers, roleEnum, tasksTable, taskStatusEnum, taskAttachmentsTable, subtasksTable, notesTable, notificationsTable, taskCompletionsTable, projectKnowledgeTable };

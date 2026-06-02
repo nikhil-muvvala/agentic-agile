@@ -2,6 +2,7 @@ import { db } from "../../db/index.js";
 import { notesTable } from "../../models/index.js";
 import { eq, and } from "drizzle-orm";
 import { getIO } from "../../config/socket.js";
+import { ingestMemory } from "../../services/memoryIngestion.js";
 
 // Admin only: Create a new note for a project
 export const createNote = async function(req, res) {
@@ -32,6 +33,15 @@ export const createNote = async function(req, res) {
         };
 
         getIO().to(`project_${projectId}`).emit("new_note",payload);
+
+        try {
+            // Project Knowledge Ingestion (Level 4 RAG)
+            const memoryContent = `Note Title: ${title}\nContent: ${content || 'No content provided.'}`;
+            // Run asynchronously
+            ingestMemory(projectId, memoryContent, 'note_added', newNote.id);
+        } catch (err) {
+            console.error("[Project Brain Ingestion Error]", err);
+        }
 
         return res.status(201).json({ message: "Note created successfully", note: newNote });
     } catch (err) {

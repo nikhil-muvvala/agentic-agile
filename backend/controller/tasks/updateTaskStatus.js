@@ -4,6 +4,7 @@ import { eq, and } from "drizzle-orm";
 import { getIO } from "../../config/socket.js";
 import { taskCompletionsTable } from "../../models/taskCompletions.js";
 import { createWeightedVector } from "../../utils/aiGatekeeper.js";
+import { ingestMemory } from "../../services/memoryIngestion.js";
 
 export const updateTaskStatus = async function(req, res) {
     try {
@@ -57,6 +58,17 @@ export const updateTaskStatus = async function(req, res) {
             } catch (memErr) {
                 console.error("[Memory Bank Error] Failed to generate or save embedding:", memErr);
                 // We don't return an error here because we still want the task status update to succeed for the user.
+            }
+        }
+
+        if (status === 'done') {
+            try {
+                // Project Knowledge Ingestion (Level 4 RAG)
+                const memoryContent = `Task Title: ${updatedTask.title}\nDescription: ${updatedTask.description || 'No description provided.'}`;
+                // Run asynchronously without blocking the API response
+                ingestMemory(projectId, memoryContent, 'task_completion', taskId);
+            } catch (err) {
+                console.error("[Project Brain Ingestion Error]", err);
             }
         }
 

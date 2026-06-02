@@ -7,6 +7,7 @@ import ProjectMembers from '../components/ProjectMembers';
 import ProjectNotes from '../components/ProjectNotes';
 import ProjectSettings from '../components/ProjectSettings';
 import Navbar from '../components/Navbar';
+import ProjectBrainChat from '../components/ProjectBrainChat';
 
 const ProjectDetails = () => {
   const { projectId } = useParams();
@@ -16,6 +17,7 @@ const ProjectDetails = () => {
   const [userRole, setUserRole] = useState(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('tasks'); // 'tasks', 'notes', 'members'
+  const [isChatOpen, setIsChatOpen] = useState(false);
 
   useEffect(() => {
     fetchProjectDetails();
@@ -47,22 +49,41 @@ const ProjectDetails = () => {
   }
 
   return (
-    <div>
-      <Navbar 
-        extraRightContent={
-          <span style={{ 
-            padding: '0.2rem 0.6rem', 
-            borderRadius: '4px', 
-            background: 'var(--accent-primary)', 
-            fontSize: '0.8rem',
-            color: 'white'
-          }}>
-            {userRole}
-          </span>
-        }
-      />
+    <div style={{ 
+      display: isChatOpen ? 'flex' : 'block', 
+      height: isChatOpen ? '100vh' : 'auto', 
+      overflow: isChatOpen ? 'hidden' : 'visible' 
+    }}>
+      
+      {/* Main Content Area (Left) */}
+      <div style={{ 
+        flex: 1, 
+        overflowY: isChatOpen ? 'auto' : 'visible', 
+        display: isChatOpen ? 'flex' : 'block', 
+        flexDirection: isChatOpen ? 'column' : 'row' 
+      }}>
+        <Navbar 
+          extraRightContent={
+            <span style={{ 
+              padding: '0.2rem 0.6rem', 
+              borderRadius: '4px', 
+              background: 'var(--accent-primary)', 
+              fontSize: '0.8rem',
+              color: 'white'
+            }}>
+              {userRole}
+            </span>
+          }
+        />
 
-      <main className="container" style={{ marginTop: '3rem' }}>
+        <main className="container" style={{ 
+          marginTop: '3rem', 
+          flex: isChatOpen ? 1 : 'none',
+          width: isChatOpen ? '100%' : 'auto',
+          maxWidth: isChatOpen ? '100%' : undefined,
+          margin: isChatOpen ? '0' : '0 auto',
+          padding: '0 2rem'
+        }}>
         <div style={{ marginBottom: '2rem' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '0.5rem' }}>
             <Link to="/" style={{ color: 'var(--text-secondary)', textDecoration: 'none' }}>&larr; Back</Link>
@@ -123,7 +144,12 @@ const ProjectDetails = () => {
           {activeTab === 'notes' && <ProjectNotes projectId={projectId} userRole={userRole} />}
           {activeTab === 'settings' && <ProjectSettings projectId={projectId} projectData={project} userRole={userRole} />}
         </div>
-      </main>
+        </main>
+      </div>
+
+      {/* Project Brain Sidebar (Right) */}
+      <ProjectBrainChat projectId={projectId} isOpen={isChatOpen} setIsOpen={setIsChatOpen} />
+
     </div>
   );
 };

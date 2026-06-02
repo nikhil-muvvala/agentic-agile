@@ -1,0 +1,234 @@
+.project-brain-sidebar {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    width: 400px;
+    min-width: 400px;
+    background: #fff;
+    border-left: 1px solid var(--border-light);
+    box-shadow: -5px 0 15px rgba(0,0,0,0.03);
+    transition: all 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+/* Floating Action Button (FAB) */
+.project-brain-fab {
+    position: fixed;
+    bottom: 30px;
+    right: 30px;
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #6366f1, #a855f7);
+    color: white;
+    font-size: 28px;
+    border: none;
+    box-shadow: 0 10px 25px rgba(99, 102, 241, 0.4);
+    cursor: pointer;
+    transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275), box-shadow 0.3s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+}
+
+.project-brain-fab:hover {
+    transform: scale(1.1) translateY(-5px);
+    box-shadow: 0 15px 35px rgba(168, 85, 247, 0.5);
+}
+
+/* Header */
+.project-brain-header {
+    background: linear-gradient(135deg, #6366f1, #a855f7);
+    color: white;
+    padding: 15px 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.project-brain-header h3 {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 600;
+}
+
+.close-btn {
+    background: transparent;
+    border: none;
+    color: white;
+    font-size: 24px;
+    cursor: pointer;
+    opacity: 0.8;
+    transition: opacity 0.2s;
+}
+
+.close-btn:hover {
+    opacity: 1;
+}
+
+
+
+/* Message Area */
+.project-brain-messages {
+    flex: 1;
+    padding: 20px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    background: #f8fafc;
+}
+
+.brain-empty-state {
+    text-align: center;
+    color: #64748b;
+    font-size: 14px;
+    margin-top: 40px;
+    padding: 20px;
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.02);
+}
+
+/* Chat Bubbles */
+.chat-bubble-container {
+    display: flex;
+    flex-direction: column;
+    max-width: 85%;
+}
+
+.chat-bubble-container.user {
+    align-self: flex-end;
+    align-items: flex-end;
+}
+
+.chat-bubble-container.model {
+    align-self: flex-start;
+    align-items: flex-start;
+}
+
+.chat-bubble {
+    padding: 12px 16px;
+    border-radius: 18px;
+    font-size: 14px;
+    line-height: 1.5;
+    word-wrap: break-word;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+}
+
+.chat-bubble p {
+    margin: 0;
+}
+
+.chat-bubble.user {
+    background: linear-gradient(135deg, #6366f1, #818cf8);
+    color: white;
+    border-bottom-right-radius: 4px;
+}
+
+.chat-bubble.model {
+    background: white;
+    color: #1e293b;
+    border-bottom-left-radius: 4px;
+    border: 1px solid #e2e8f0;
+}
+
+/* Citations / Sources */
+.chat-sources {
+    margin-top: 6px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    align-items: center;
+}
+
+.source-label {
+    font-size: 11px;
+    color: #94a3b8;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.source-pill {
+    background: #e0e7ff;
+    color: #4338ca;
+    font-size: 11px;
+    padding: 4px 8px;
+    border-radius: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+    border: 1px solid #c7d2fe;
+}
+
+.source-pill:hover {
+    background: #c7d2fe;
+    transform: translateY(-1px);
+}
+
+/* Input Area */
+.project-brain-input-area {
+    padding: 15px;
+    background: white;
+    border-top: 1px solid #e2e8f0;
+    display: flex;
+    gap: 10px;
+}
+
+.project-brain-input-area input {
+    flex: 1;
+    padding: 12px 16px;
+    border: 1px solid #cbd5e1;
+    border-radius: 20px;
+    outline: none;
+    font-size: 14px;
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.project-brain-input-area input:focus {
+    border-color: #6366f1;
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+}
+
+.project-brain-input-area button {
+    background: #6366f1;
+    color: white;
+    border: none;
+    border-radius: 20px;
+    padding: 0 20px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.project-brain-input-area button:hover:not(:disabled) {
+    background: #4f46e5;
+}
+
+.project-brain-input-area button:disabled {
+    background: #94a3b8;
+    cursor: not-allowed;
+}
+
+/* Loading Animation */
+.loading-bubble {
+    display: flex;
+    gap: 4px;
+    padding: 16px 20px;
+}
+
+.dot {
+    width: 6px;
+    height: 6px;
+    background: #94a3b8;
+    border-radius: 50%;
+    animation: bounce 1.4s infinite ease-in-out both;
+}
+
+.dot:nth-child(1) { animation-delay: -0.32s; }
+.dot:nth-child(2) { animation-delay: -0.16s; }
+
+@keyframes bounce {
+    0%, 80%, 100% { transform: scale(0); }
+    40% { transform: scale(1); }
+}
