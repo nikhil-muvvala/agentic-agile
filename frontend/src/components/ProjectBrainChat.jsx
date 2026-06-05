@@ -67,7 +67,7 @@ const ProjectBrainChat = ({ projectId, isOpen, setIsOpen }) => {
             {isOpen ? (
                 <div className="project-brain-sidebar">
                     <div className="project-brain-header">
-                        <h3>🧠 Project Brain</h3>
+                        <h3>✨ Project Brain</h3>
                         <button className="close-btn" onClick={() => setIsOpen(false)}>×</button>
                     </div>
                 
@@ -122,7 +122,7 @@ const ProjectBrainChat = ({ projectId, isOpen, setIsOpen }) => {
                 </div>
             ) : (
                 <button className="project-brain-fab" onClick={() => setIsOpen(true)}>
-                    🧠
+                    ✨
                 </button>
             )}
         </>
