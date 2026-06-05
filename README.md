@@ -71,11 +71,10 @@ This application is designed to be highly scalable. If asked in a System Design 
     ```bash
     cp .env.example .env
     ```
-    *Note: Never commit your actual `.env` file to version control. It is already included in the `.gitignore`.*
 4.  **Push Database Schema**
     Run `npx drizzle-kit push` to sync your local models to your PostgreSQL database.
 5.  **Run the Application**
-    *   **Backend:** `node server.js`
+    *   **Backend:** `cd backend && node server.js`
     *   **Frontend:** `cd frontend && npm run dev`
 
 
