@@ -54,12 +54,16 @@ export const evaluateAtRiskTasks = async (projectId) => {
 
         // 3. Prepare Batch Payload
         const tasksPayload = [];
+        const taskIds = activeTasksRecords.map(r => r.task.id);
         
-        // Fetch subtasks sequentially since it's just local fast DB queries
+        // Fetch ALL subtasks in one single bulk query (Fixing N+1 Query bug)
+        const allSubtasks = await db.select().from(subtasksTable).where(inArray(subtasksTable.taskId, taskIds));
+        
         for (const record of activeTasksRecords) {
             const task = record.task;
-            const subtasks = await db.select().from(subtasksTable).where(eq(subtasksTable.taskId, task.id));
-            const subtasksData = subtasks.map(st => `- [${st.isCompleted ? 'X' : ' '}] ${st.title}`).join("\n");
+            // Filter the bulk array in memory instead of hitting the database again
+            const taskSubtasks = allSubtasks.filter(st => st.taskId === task.id);
+            const subtasksData = taskSubtasks.map(st => `- [${st.isCompleted ? 'X' : ' '}] ${st.title}`).join("\n");
             
             tasksPayload.push({
                 taskId: task.id,

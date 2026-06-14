@@ -42,12 +42,31 @@ This application is designed to be highly scalable. If asked in a System Design 
 *   **Horizontal Scaling (CPU Limits):** Even if the index fits in RAM, calculating 768-dimensional vector distances is incredibly CPU-intensive. If 10,000 users trigger an AI search simultaneously, a single server's CPU will max out at 100%. To resolve this, we horizontally scale by introducing **PostgreSQL Read Replicas**. This distributes the heavy `pgvector` mathematical `SELECT` queries across multiple database CPUs.
 
 ### 3. Data Distribution (Replication & Partitioning)
-*   **Replication Strategy (Single-Leader):** A Project Management tool requires Strong Consistency; if a manager deletes a task, it must vanish instantly for all users. We specifically avoid **Multi-Leader** architectures to prevent "Eventual Consistency" anomalies (such as deleted projects being brought back to life via Last Write Wins conflict resolution). We also avoid **Leaderless** architectures (which prioritize High Availability over Consistency) because a Kanban board cannot tolerate returning outdated task statuses via Quorum reads. All writes are routed to a Single Leader to guarantee absolute data integrity.
-*   **Partitioning Strategy (Project-Based Sharding):** If the database grows too massive for a single cluster, we partition the data. Instead of randomly sharding by `task_id` (which requires slow Scatter-Gather network joins to load a single board), we utilize **Project-Based Partitioning** hashed by `project_id`. This guarantees that 100% of a company's projects, tasks, and users live on the exact same physical database shard, ensuring immediate query responses and strict data isolation.
+*   **Replication Strategy (Single-Leader):** A Project Management tool requires Strong Consistency. If a manager deletes a task, it must vanish instantly for all users. We avoid Multi-Leader and Leaderless architectures because a Kanban board cannot tolerate returning outdated or conflicting task statuses. All writes are routed to a Single Leader to guarantee absolute data integrity.
+*   **Partitioning Strategy (Project-Based Sharding):** If the database grows too massive for a single cluster, we partition the data by `project_id`. This guarantees that 100% of a company's projects and tasks live on the exact same physical database server, ensuring immediate query responses and strict data isolation.
 
-### 4. Scaling the Compute (Machine Learning)
+### 4. The CAP Theorem Decision (Choosing CP over AP)
+In distributed systems, the CAP theorem forces a choice between **Consistency** (perfectly accurate data) and **Availability** (100% uptime) during a network failure. 
+For this enterprise tool, we strictly choose **CP (Consistency)**. If a database server disconnects, it is significantly safer for the application to temporarily go offline and show an error message rather than staying online and showing developers outdated tasks. Serving outdated data on a Kanban board would cause developers to perform duplicate work, costing the business time and money.
+
+### 5. Scaling the Compute (Machine Learning)
 *   **The Bottleneck:** Node.js is Single-Threaded (Event Loop). Running local machine learning inference (like our `Xenova` semantic overlap checker) directly on the main Node.js process blocks the Event Loop, causing the entire server to freeze for all other users while the math computes.
 *   **The Solution:** The heavy reasoning AI is already externalized to Google Gemini's highly scalable APIs. To scale the local ML embeddings, the `Xenova` pipeline is extracted into a **dedicated, stateless Python or Node.js Microservice** (or AWS Lambda). The main server simply makes an asynchronous network call to this microservice, ensuring its single thread remains 100% free to handle other live user requests.
+
+### 6. API Rate Limiting & Message Queues (BullMQ/Redis)
+*   **The Bottleneck:** Third-party AI APIs (like Google Gemini) enforce strict rate limits (e.g., 15 Requests Per Minute). If a background cron job attempts to evaluate 10,000 projects simultaneously, it will instantly exceed the API quota and trigger `HTTP 429 Too Many Requests`. This creates a "Noisy Neighbor" problem, completely crashing the AI Chatbot for live users.
+*   **The Solution:** To solve this without dropping tasks, we split the architecture into a **Queue** and a **Token Bucket**:
+    *   **The Queue (The Waiting Line):** The Node.js server instantly dumps all 10,000 tasks into a Redis-backed queue. The queue simply holds the tasks safely in line.
+    *   **The Token Bucket (The Permission Slips):** A separate mechanism generates exactly 15 "permission slips" every minute. Before a dedicated Background Worker can pull a task from the queue and send it to Google, it must grab a permission slip. If the bucket is empty, the Worker pauses and sleeps. This mathematically guarantees we never break the API speed limit.
+    *   **Priority Queuing:** Live user interactions (like Chatbot prompts) are given High Priority. The Worker always processes High Priority tasks first, ensuring live users instantly bypass the massive background cron jobs.
+*   **[NOTE FOR DEPLOYMENT]:** *This Microservice/BullMQ architecture is currently theoretical and documented for System Design purposes. It must be actively implemented into the codebase before the final production deployment to protect the Google API limits.*
+
+### 7. Microservices Architecture (Decoupling the Backend)
+*   **The Strategy:** To guarantee that the main Node.js API server remains blazingly fast and is never bogged down by heavy machine learning operations, the backend is split into three distinct microservices:
+    1.  **Main API Server:** Handles lightweight CRUD operations, User Authentication, and WebSockets. (Fast & Immune to AI rate limits).
+    2.  **Dedicated AI Worker:** Solely responsible for communicating with Google Gemini, managing the Token Bucket, and processing the Message Queues. 
+    3.  **Local ML Server (Xenova):** A separate CPU-optimized environment dedicated to running local Hugging Face mathematical embeddings without blocking the main event loop.
+*   **[NOTE FOR DEPLOYMENT]:** *The codebase is currently structured as a monolithic MVP for ease of local development. The backend will be officially extracted into these three distinct microservices before the final production deployment.*
 
 ---
 
@@ -71,11 +90,10 @@ This application is designed to be highly scalable. If asked in a System Design 
     ```bash
     cp .env.example .env
     ```
-    *Note: Never commit your actual `.env` file to version control. It is already included in the `.gitignore`.*
 4.  **Push Database Schema**
     Run `npx drizzle-kit push` to sync your local models to your PostgreSQL database.
 5.  **Run the Application**
-    *   **Backend:** `node server.js`
+    *   **Backend:** `cd backend && node server.js`
     *   **Frontend:** `cd frontend && npm run dev`
 
 

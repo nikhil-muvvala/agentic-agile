@@ -50,12 +50,13 @@ RULES:
         
         prompt += `\nOUTPUT FORMAT: Return ONLY a raw JSON array of strings. Do not use markdown formatting blocks like \`\`\`json. Return pure JSON. Example: ["Setup database", "Create API route"]`;
 
-        // We use a low temperature (0.2) to force the AI to be logical and strict, not creative.
+        // We use a low temperature (0.2) and enforce JSON response type
         const response = await aiClient.models.generateContent({
             model: 'gemini-2.5-flash',
             contents: prompt,
             config: {
-                temperature: 0.2
+                temperature: 0.2,
+                responseMimeType: "application/json"
             }
         });
 
@@ -65,14 +66,8 @@ RULES:
         } else {
             textResponse = response.text;
         }
-        let cleanText = textResponse.trim();
-        
-        // Safety cleanup if the AI hallucinates markdown anyway
-        if (cleanText.startsWith('```json')) cleanText = cleanText.substring(7);
-        if (cleanText.startsWith('```')) cleanText = cleanText.substring(3);
-        if (cleanText.endsWith('```')) cleanText = cleanText.substring(0, cleanText.length - 3);
 
-        const subtasks = JSON.parse(cleanText.trim());
+        const subtasks = JSON.parse(textResponse.trim());
 
         // Check if the AI decided the task was gibberish
         if (subtasks.length === 1 && subtasks[0] === "I_DONT_KNOW") {

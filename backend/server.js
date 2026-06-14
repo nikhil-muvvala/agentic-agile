@@ -10,7 +10,8 @@ import noteRouter from "./router/noteRoutes.js";
 import notificationRouter from "./router/notificationRoutes.js";
 import userRouter from "./router/userRoutes.js";
 import cors from "cors";
-import { initCronJobs } from "./cron/projectHealth.js";
+import { initQueue } from "./cron/projectHealth.js";
+import boss from "./config/queue.js";
 
 const app = express();
 const server = http.createServer(app);
@@ -20,8 +21,6 @@ const PORT = 3000;
 initSocket(server);
 app.use(cors());
 
-// Initialize Background Cron Jobs
-initCronJobs();
 
 app.get("/api/v1/healthcheck", (req, res) => {
     res.status(200).json({
@@ -38,6 +37,23 @@ app.use("/api/v1/projects/:projectId/t/:taskId/subtasks", subtaskRouter);
 app.use("/api/v1/projects/:projectId/notes", noteRouter);
 app.use("/api/v1/notifications", notificationRouter);
 app.use("/api/v1/users", userRouter);
-server.listen(PORT, () => {
-    console.log(`Server is running on port ${PORT}`);
-});
+const startServer = async () => {
+    try {
+        // 1. Start pg-boss (Creates the tables automatically if missing)
+        await boss.start();
+        console.log("🐘 [pg-boss] Database queue started successfully.");
+        
+        // 2. Initialize our Queues & Workers
+        await initQueue();
+        
+        // 3. Start listening for HTTP requests
+        server.listen(PORT, () => {
+            console.log(`Server is running on port ${PORT}`);
+        });
+    } catch (error) {
+        console.error("Failed to start server:", error);
+        process.exit(1);
+    }
+};
+
+startServer();
