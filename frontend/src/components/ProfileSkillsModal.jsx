@@ -95,7 +95,7 @@ const ProfileSkillsModal = ({ onClose }) => {
             </div>
 
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '1rem' }}>
-              <button className="btn" onClick={onClose} style={{ background: 'transparent' }}>Cancel</button>
+              <button className="btn" onClick={onClose} style={{ background: 'var(--bg-secondary)', color: 'var(--text-secondary)' }}>Cancel</button>
               <button className="btn btn-primary" onClick={handleSave} disabled={saving}>
                 {saving ? 'Saving...' : 'Save Profile'}
               </button>
