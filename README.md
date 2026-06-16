@@ -88,9 +88,20 @@ For this enterprise tool, we strictly choose **CP (Consistency)**. If a database
     ```bash
     cp .env.example .env
     ```
-4.  **Push Database Schema**
+
+4.  **Google OAuth Setup**
+    To use the "Login with Google" functionality, you must create a Google Cloud Project and generate an OAuth Client ID.
+    *   Go to the Google Cloud Console -> APIs & Services -> Credentials.
+    *   Create an **OAuth Client ID** (Web Application).
+    *   Add `http://localhost:5173` to the **Authorized JavaScript origins**.
+    *   Copy the generated `Client ID`.
+    *   Add `VITE_GOOGLE_CLIENT_ID=your-client-id` to `frontend/.env`.
+    *   Add `GOOGLE_CLIENT_ID=your-client-id` to `backend/.env`.
+
+5.  **Push Database Schema**
     Run `npx drizzle-kit push` to sync your local models to your PostgreSQL database.
-5.  **Run the Application**
+
+6.  **Run the Application**
     *   **Backend:** `cd backend && node server.js`
     *   **Frontend:** `cd frontend && npm run dev`
 

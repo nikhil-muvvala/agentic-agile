@@ -53,6 +53,15 @@ export const AuthProvider = ({ children }) => {
     return response.data;
   };
 
+  const loginWithGoogle = async (credential) => {
+    const response = await api.post('/auth/google', { credential });
+    setToken(response.data.accessToken);
+    if (response.data.refreshToken) {
+      setRefreshToken(response.data.refreshToken);
+    }
+    return response.data;
+  };
+
   const register = async (name, email, password) => {
     const response = await api.post('/auth/register', { name, email, password });
     setToken(response.data.accessToken);
@@ -76,7 +85,7 @@ export const AuthProvider = ({ children }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, token, loading, login, register, logout }}>
+    <AuthContext.Provider value={{ user, setUser, token, login, loginWithGoogle, register, logout, loading }}>
       {!loading && children}
     </AuthContext.Provider>
   );

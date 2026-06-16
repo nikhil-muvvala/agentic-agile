@@ -6,11 +6,13 @@ import { currentUser } from "../controller/auth/current-user.js";
 import { changePassword } from "../controller/auth/change-password.js";
 import { refreshAccessToken } from "../controller/auth/refreshToken.js";
 import { logout } from "../controller/auth/logout.js";
+import { googleLogin } from "../controller/auth/googleAuth.js";
 
 const router = express.Router();
 
 router.post("/register", register);
 router.post("/login", login);
+router.post("/google", googleLogin);
 router.post("/logout", validateJsonWebToken, logout);
 router.get("/current-user", validateJsonWebToken, currentUser);
 router.patch("/change-password", validateJsonWebToken, changePassword);
