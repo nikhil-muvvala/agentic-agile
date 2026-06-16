@@ -37,9 +37,7 @@ export const SocketProvider = ({ children }) => {
       // If user logs out, kill the socket
       socket.disconnect();
       setSocket(null);
-    }
-  }, [user]);
-
+  }}, [user?.id]);
   return (
     <SocketContext.Provider value={socket}>
       {children}

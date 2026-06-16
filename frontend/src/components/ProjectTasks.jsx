@@ -1,7 +1,105 @@
-import React, { useState, useEffect, useContext } from 'react';
+import React, { useState, useEffect, useContext, useCallback, memo } from 'react';
 import api from '../services/api';
 import TaskDetailsModal from './TaskDetailsModal';
 import { SocketContext } from '../context/SocketContext';
+
+// ---------------------------------------------------------
+// Extracted & Memoized Components
+// ---------------------------------------------------------
+const TaskCard = memo(({ task, onTaskClick }) => {
+  const handleDragStart = (e) => {
+    e.dataTransfer.setData('taskId', task.id);
+  };
+
+  return (
+    <div 
+      draggable
+      onDragStart={handleDragStart}
+      className="glass-panel" 
+      style={{ 
+        padding: '1rem', 
+        background: 'var(--bg-secondary)', 
+        transition: 'transform 0.2s', 
+        cursor: 'grab',
+        position: 'relative' 
+      }}
+      onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-2px)'}
+      onMouseLeave={(e) => e.currentTarget.style.transform = 'translateY(0)'}
+      onDragEnd={(e) => e.currentTarget.style.transform = 'translateY(0)'}
+    >
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.5rem' }}>
+        <h5 style={{ margin: 0, color: 'var(--accent-primary)' }}>{task.title}</h5>
+        <span style={{ 
+          fontSize: '0.7rem', 
+          background: task.assignee ? 'rgba(59, 130, 246, 0.2)' : 'rgba(255, 255, 255, 0.1)', 
+          color: task.assignee ? '#60a5fa' : 'var(--text-muted)',
+          padding: '0.1rem 0.4rem', borderRadius: '4px' 
+        }}>
+          {task.assignee ? task.assignee.name : 'Unassigned'}
+        </span>
+      </div>
+      
+      <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '1rem' }}>
+        {task.description?.length > 50 ? task.description.substring(0, 50) + '...' : task.description}
+      </p>
+      
+      {task.targetDate && (
+        <div style={{ marginBottom: '1rem' }}>
+          <span style={{ 
+            fontSize: '0.75rem', 
+            color: new Date(task.targetDate) < new Date() && task.status !== 'done' ? '#fca5a5' : 'var(--text-secondary)',
+            background: new Date(task.targetDate) < new Date() && task.status !== 'done' ? 'rgba(239, 68, 68, 0.2)' : 'rgba(255, 255, 255, 0.05)',
+            padding: '0.2rem 0.5rem', borderRadius: '4px',
+            border: new Date(task.targetDate) < new Date() && task.status !== 'done' ? '1px solid rgba(239, 68, 68, 0.5)' : 'none',
+            display: 'inline-flex', alignItems: 'center', gap: '4px'
+          }}>
+            🎯 Due: {new Date(task.targetDate).toLocaleDateString()}
+          </span>
+        </div>
+      )}
+      
+      <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center' }}>
+        <button 
+          className="btn btn-secondary" 
+          style={{ padding: '0.3rem 0.6rem', fontSize: '0.75rem' }}
+          onClick={() => onTaskClick(task.id)}
+        >
+          View Details
+        </button>
+      </div>
+    </div>
+  );
+});
+
+const KanbanColumn = memo(({ title, items, statusValue, onDrop, onTaskClick }) => {
+  const handleDragOver = (e) => {
+    e.preventDefault(); // Required to allow dropping
+  };
+
+  const handleDrop = (e) => {
+    e.preventDefault();
+    const taskId = e.dataTransfer.getData('taskId');
+    if (taskId) onDrop(parseInt(taskId, 10), statusValue);
+  };
+
+  return (
+    <div 
+      className="glass-panel" 
+      style={{ flex: 1, padding: '1rem', background: 'rgba(30, 41, 59, 0.4)', minHeight: '300px' }}
+      onDragOver={handleDragOver}
+      onDrop={handleDrop}
+    >
+      <h4 style={{ marginBottom: '1rem', textAlign: 'center', borderBottom: '1px solid var(--border-light)', paddingBottom: '0.5rem' }}>{title} ({items.length})</h4>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+        {items.map(task => (
+          <TaskCard key={task.id} task={task} onTaskClick={onTaskClick} />
+        ))}
+        {items.length === 0 && <div style={{ textAlign: 'center', padding: '1rem', color: 'var(--text-muted)', fontSize: '0.8rem' }}>Drop tasks here</div>}
+      </div>
+    </div>
+  );
+});
+// ---------------------------------------------------------
 
 const ProjectTasks = ({ projectId, userRole }) => {
   const [tasks, setTasks] = useState([]);
@@ -33,7 +131,6 @@ const ProjectTasks = ({ projectId, userRole }) => {
 
     if (socket) {
       socket.emit("join_project_room", projectId);
-
       return () => {
         socket.emit("leave_project_room", projectId);
       };
@@ -45,7 +142,6 @@ const ProjectTasks = ({ projectId, userRole }) => {
     if (!socket) return;
 
     const handleTaskUpdated = (data) => {
-      console.log("WebSocket Event Received: task_updated", data);
       setTasks(prevTasks => prevTasks.map(t => {
         if (t.id === data.taskId) {
            let updatedTask = { ...t };
@@ -68,7 +164,6 @@ const ProjectTasks = ({ projectId, userRole }) => {
     };
 
     const handleTaskCreated = (data) => {
-      console.log("WebSocket Event Received: task_created", data);
       const newTask = { ...data.task };
       if (newTask.assigneeId) {
           const member = members.find(m => m.user?.id === newTask.assigneeId);
@@ -81,7 +176,6 @@ const ProjectTasks = ({ projectId, userRole }) => {
     };
 
     const handleTaskDeleted = (data) => {
-      console.log("WebSocket Event Received: task_deleted", data);
       setTasks(prev => prev.filter(t => t.id !== data.taskId));
     };
 
@@ -130,20 +224,35 @@ const ProjectTasks = ({ projectId, userRole }) => {
       setAssigneeId('');
       setTargetDate('');
       setShowForm(false);
+      // Wait for socket to update list, or fetch manually as backup
       fetchTasks();
     } catch (err) {
       alert(err.response?.data?.message || 'Error creating task');
     }
   };
 
-  const handleStatusChange = async (taskId, newStatus) => {
+  // Optimistic UI for Drag and Drop
+  const handleDrop = useCallback(async (taskId, newStatus) => {
+    // 1. Optimistic Update (Instant snap)
+    setTasks(prevTasks => {
+      return prevTasks.map(t => {
+        if (t.id === taskId) {
+          return { ...t, status: newStatus };
+        }
+        return t;
+      });
+    });
+
+    // 2. Network Request
     try {
       await api.patch(`/tasks/${projectId}/t/${taskId}/status`, { status: newStatus });
-      fetchTasks();
+      // We don't fetchTasks() here anymore! The WebSocket or Optimistic UI handles it.
     } catch (err) {
       alert(err.response?.data?.message || 'Error updating status');
+      // Revert on failure
+      fetchTasks(); 
     }
-  };
+  }, [projectId]);
 
   const handlePredictDeadline = async () => {
     if (!title) return alert("Please enter a task title first!");
@@ -196,82 +305,15 @@ const ProjectTasks = ({ projectId, userRole }) => {
     }
   };
 
+  const handleTaskClick = useCallback((taskId) => {
+    setSelectedTaskId(taskId);
+  }, []);
+
   if (loading) return <p>Loading tasks...</p>;
 
-  // Group tasks for Kanban board
   const todo = tasks.filter(t => t.status === 'todo');
   const inProgress = tasks.filter(t => t.status === 'in_progress');
   const done = tasks.filter(t => t.status === 'done');
-
-  const KanbanColumn = ({ title, items, statusValue }) => (
-    <div className="glass-panel" style={{ flex: 1, padding: '1rem', background: 'rgba(30, 41, 59, 0.4)' }}>
-      <h4 style={{ marginBottom: '1rem', textAlign: 'center', borderBottom: '1px solid var(--border-light)', paddingBottom: '0.5rem' }}>{title} ({items.length})</h4>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-        {items.map(task => (
-          <div 
-            key={task.id || task.title} 
-            className="glass-panel" 
-            style={{ padding: '1rem', background: 'var(--bg-secondary)', transition: 'transform 0.2s', position: 'relative' }}
-            onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-2px)'}
-            onMouseLeave={(e) => e.currentTarget.style.transform = 'translateY(0)'}
-          >
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.5rem' }}>
-              <h5 style={{ margin: 0, color: 'var(--accent-primary)' }}>{task.title}</h5>
-              <span style={{ 
-                fontSize: '0.7rem', 
-                background: task.assignee ? 'rgba(59, 130, 246, 0.2)' : 'rgba(255, 255, 255, 0.1)', 
-                color: task.assignee ? '#60a5fa' : 'var(--text-muted)',
-                padding: '0.1rem 0.4rem', borderRadius: '4px' 
-              }}>
-                {task.assignee ? task.assignee.name : 'Unassigned'}
-              </span>
-            </div>
-            
-            <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '1rem' }}>
-              {task.description.length > 50 ? task.description.substring(0, 50) + '...' : task.description}
-            </p>
-            
-            {task.targetDate && (
-              <div style={{ marginBottom: '1rem' }}>
-                <span style={{ 
-                  fontSize: '0.75rem', 
-                  color: new Date(task.targetDate) < new Date() && task.status !== 'done' ? '#fca5a5' : 'var(--text-secondary)',
-                  background: new Date(task.targetDate) < new Date() && task.status !== 'done' ? 'rgba(239, 68, 68, 0.2)' : 'rgba(255, 255, 255, 0.05)',
-                  padding: '0.2rem 0.5rem', borderRadius: '4px',
-                  border: new Date(task.targetDate) < new Date() && task.status !== 'done' ? '1px solid rgba(239, 68, 68, 0.5)' : 'none',
-                  display: 'inline-flex', alignItems: 'center', gap: '4px'
-                }}>
-                  🎯 Due: {new Date(task.targetDate).toLocaleDateString()}
-                </span>
-              </div>
-            )}
-            
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <select 
-                className="form-input" 
-                style={{ padding: '0.3rem', fontSize: '0.75rem', background: 'var(--bg-primary)', width: 'auto' }}
-                value={statusValue}
-                onChange={(e) => handleStatusChange(task.id, e.target.value)}
-              >
-                <option value="todo">Todo</option>
-                <option value="in_progress">In Progress</option>
-                <option value="done">Done</option>
-              </select>
-              
-              <button 
-                className="btn btn-secondary" 
-                style={{ padding: '0.3rem 0.6rem', fontSize: '0.75rem' }}
-                onClick={() => setSelectedTaskId(task.id)}
-              >
-                View Details
-              </button>
-            </div>
-          </div>
-        ))}
-        {items.length === 0 && <div style={{ textAlign: 'center', padding: '1rem', color: 'var(--text-muted)', fontSize: '0.8rem' }}>No tasks here</div>}
-      </div>
-    </div>
-  );
 
   return (
     <div>
@@ -395,9 +437,9 @@ const ProjectTasks = ({ projectId, userRole }) => {
       )}
 
       <div style={{ display: 'flex', gap: '1.5rem', alignItems: 'flex-start' }}>
-        <KanbanColumn title="To Do" items={todo} statusValue="todo" />
-        <KanbanColumn title="In Progress" items={inProgress} statusValue="in_progress" />
-        <KanbanColumn title="Done" items={done} statusValue="done" />
+        <KanbanColumn title="To Do" items={todo} statusValue="todo" onDrop={handleDrop} onTaskClick={handleTaskClick} />
+        <KanbanColumn title="In Progress" items={inProgress} statusValue="in_progress" onDrop={handleDrop} onTaskClick={handleTaskClick} />
+        <KanbanColumn title="Done" items={done} statusValue="done" onDrop={handleDrop} onTaskClick={handleTaskClick} />
       </div>
 
       {selectedTaskId && (

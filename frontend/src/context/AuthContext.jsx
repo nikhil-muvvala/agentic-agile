@@ -3,6 +3,8 @@ import api from '../services/api';
 
 export const AuthContext = createContext();
 
+// if we want to use create context then create another function where it uses createcontext variable inside it 
+
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [token, setToken] = useState(localStorage.getItem('token'));
@@ -12,15 +14,23 @@ export const AuthProvider = ({ children }) => {
   useEffect(() => {
     if (token) {
       localStorage.setItem('token', token);
-      if (refreshToken) localStorage.setItem('refreshToken', refreshToken);
       fetchCurrentUser();
     } else {
       localStorage.removeItem('token');
-      localStorage.removeItem('refreshToken');
       setUser(null);
       setLoading(false);
     }
-  }, [token, refreshToken]);
+  }, [token]); 
+
+
+   useEffect(() => {
+    if (refreshToken) {
+      localStorage.setItem('refreshToken', refreshToken);
+    } else {
+      localStorage.removeItem('refreshToken');
+    }
+  }, [refreshToken]);
+
 
   const fetchCurrentUser = async () => {
     try {
