@@ -1,7 +1,9 @@
 import axios from 'axios';
 
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3000';
+
 const api = axios.create({
-  baseURL: 'http://localhost:3000/api/v1',
+  baseURL: `${BACKEND_URL}/api/v1`,
   headers: {
     'Content-Type': 'application/json',
   },
@@ -65,7 +67,7 @@ api.interceptors.response.use(
       }
 
       return new Promise(function (resolve, reject) {
-        axios.post('http://localhost:3000/api/v1/auth/refresh-token', { refreshToken })
+        axios.post(`${BACKEND_URL}/api/v1/auth/refresh-token`, { refreshToken })
           .then(({ data }) => {
             const newAccessToken = data.accessToken;
             localStorage.setItem('token', newAccessToken);

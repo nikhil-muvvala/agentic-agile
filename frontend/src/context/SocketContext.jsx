@@ -14,7 +14,8 @@ export const SocketProvider = ({ children }) => {
     
     if (user && token) {
       // 1. Initialize the socket connection
-      const newSocket = io('http://localhost:3000', {
+      const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3000';
+      const newSocket = io(BACKEND_URL, {
         auth: { token }
       });
 
