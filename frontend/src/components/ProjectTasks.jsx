@@ -2,6 +2,7 @@ import React, { useState, useEffect, useContext, useCallback, memo } from 'react
 import api from '../services/api';
 import TaskDetailsModal from './TaskDetailsModal';
 import { SocketContext } from '../context/SocketContext';
+import { AuthContext } from '../context/AuthContext';
 
 // ---------------------------------------------------------
 // Extracted & Memoized Components
@@ -102,6 +103,7 @@ const KanbanColumn = memo(({ title, items, statusValue, onDrop, onTaskClick }) =
 // ---------------------------------------------------------
 
 const ProjectTasks = ({ projectId, userRole }) => {
+  const { user } = useContext(AuthContext);
   const [tasks, setTasks] = useState([]);
   const [loading, setLoading] = useState(true);
   
@@ -279,13 +281,13 @@ const ProjectTasks = ({ projectId, userRole }) => {
       const res = await api.post(`/tasks/${projectId}/suggest-assignee`, { title, description });
       if (res.data.assigneeId) {
         if (res.data.assigneeId === -1) {
-          alert("No one on the team matches this task's skill requirements or history!");
+          alert("No related user found. Not enough project history to suggest an assignee!");
         } else {
           setAssigneeId(res.data.assigneeId.toString());
         }
       }
     } catch (err) {
-      alert(err.response?.data?.message || 'Error suggesting assignee');
+      alert('No related user found. Not enough data for the AI to make a suggestion.');
     } finally {
       setIsSuggestingAssignee(false);
     }
@@ -309,7 +311,26 @@ const ProjectTasks = ({ projectId, userRole }) => {
     setSelectedTaskId(taskId);
   }, []);
 
+  const formatMemberName = (member) => {
+    if (!member || !member.user) return 'Unassigned';
+    let displayName = member.user.name;
+    if (member.user.id === user.id) displayName += " (Me)";
+    else if (member.role === 'admin') displayName += " (Admin)";
+    else if (member.role === 'project_admin') displayName += " (Project Admin)";
+    return `${displayName} - ${member.user.email}`;
+  };
+
   if (loading) return <p>Loading tasks...</p>;
+
+  const sortedMembers = [...members].sort((a, b) => {
+    if (a.user.id === user.id) return -1;
+    if (b.user.id === user.id) return 1;
+    if (a.role === 'admin' && b.role !== 'admin') return -1;
+    if (b.role === 'admin' && a.role !== 'admin') return 1;
+    if (a.role === 'project_admin' && b.role !== 'project_admin') return -1;
+    if (b.role === 'project_admin' && a.role !== 'project_admin') return 1;
+    return a.user.name.localeCompare(b.user.name);
+  });
 
   const todo = tasks.filter(t => t.status === 'todo');
   const inProgress = tasks.filter(t => t.status === 'in_progress');
@@ -323,6 +344,7 @@ const ProjectTasks = ({ projectId, userRole }) => {
           {(userRole === 'admin' || userRole === 'project_admin') && (
             <div 
               onClick={() => setIsAgentEnabled(!isAgentEnabled)}
+              title="When active, the AI Background Agent will automatically scan for duplicate tasks and suggest assignments."
               style={{ 
                 display: 'flex', alignItems: 'center', gap: '0.8rem', cursor: 'pointer',
                 background: isAgentEnabled ? 'rgba(139, 92, 246, 0.15)' : 'rgba(30,41,59,0.5)', 
@@ -366,9 +388,10 @@ const ProjectTasks = ({ projectId, userRole }) => {
             onClick={handleGenerateStandup} 
             disabled={isGeneratingStandup} 
             className="btn" 
+            title="Uses AI to generate a comprehensive Standup Report based on all team activity in the last 24 hours."
             style={{ background: 'var(--accent-primary)', color: 'white', padding: '0.5rem 1rem' }}
           >
-            ✨ Generate Standup
+            {isGeneratingStandup ? 'Analyzing...' : '✨ Analyze Last 24 Hrs'}
           </button>
           {(userRole === 'admin' || userRole === 'project_admin') && (
             <button className="btn btn-primary" onClick={() => setShowForm(!showForm)}>
@@ -394,8 +417,8 @@ const ProjectTasks = ({ projectId, userRole }) => {
               <div style={{ display: 'flex', gap: '0.5rem' }}>
                 <select className="form-input" value={assigneeId} onChange={(e) => setAssigneeId(e.target.value)} style={{ flex: 1 }}>
                   <option value="">Unassigned</option>
-                  {members.map(m => (
-                    <option key={m.user?.id} value={m.user?.id}>{m.user?.name}</option>
+                  {sortedMembers.map(m => (
+                    <option key={m.user?.id} value={m.user?.id}>{formatMemberName(m)}</option>
                   ))}
                 </select>
                 <button 

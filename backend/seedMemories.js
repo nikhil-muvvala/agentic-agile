@@ -1,34 +1,37 @@
 import 'dotenv/config';
 import { ingestMemory } from './services/memoryIngestion.js';
+import { db } from './db/index.js';
+import { tasksTable, projectsTable } from './models/index.js';
+import { eq } from 'drizzle-orm';
 
 async function seed() {
-    const projectId = 1; // Testing on Project 1
+    console.log("Looking up Payment Gateway project...");
     
-    console.log("Seeding dummy memories for Project 1...");
-
-    const dummyMemories = [
-        {
-            content: "Architectural Decision: We decided to use Redis for caching instead of Memcached. The primary reason was Redis's built-in persistence features and better support for complex data structures like Sets and Hashes.",
-            type: "project_note",
-            sourceId: 101
-        },
-        {
-            content: "Task Completed: Migrate Authentication to JWT. We switched from session cookies to JSON Web Tokens (JWT) to allow our backend to horizontally scale completely statelessly.",
-            type: "task_completion",
-            sourceId: 102
-        },
-        {
-            content: "Security Policy Update: All API routes must now implement Rate Limiting (maximum 100 requests per minute per IP) to prevent DDoS attacks. Implemented using express-rate-limit.",
-            type: "project_note",
-            sourceId: 103
-        }
-    ];
-
-    for (const mem of dummyMemories) {
-        await ingestMemory(projectId, mem.content, mem.type, mem.sourceId);
+    // Find the project
+    const projects = await db.select().from(projectsTable).where(eq(projectsTable.name, 'Payment Gateway Overhaul'));
+    if (projects.length === 0) {
+        console.error("Payment Gateway project not found!");
+        process.exit(1);
     }
     
-    console.log("Seeding complete!");
+    const projectId = projects[0].id;
+    console.log(`Found project ID: ${projectId}. Fetching tasks...`);
+
+    // Fetch all tasks
+    const tasks = await db.select().from(tasksTable).where(eq(tasksTable.projectId, projectId));
+    
+    console.log(`Found ${tasks.length} tasks. Generating ML Vector Embeddings...`);
+
+    for (const task of tasks) {
+        // Build a memory string that includes the assignee context
+        const assigneeContext = task.assigneeId ? `Assigned to user ID ${task.assigneeId}.` : "Unassigned.";
+        const memoryContent = `Task: ${task.title}. Description: ${task.description}. Status: ${task.status}. ${assigneeContext}`;
+        
+        console.log(`Ingesting: ${task.title}`);
+        await ingestMemory(projectId, memoryContent, "task_completion", task.id);
+    }
+    
+    console.log("Vector Embeddings complete! AI now has semantic memory of this project.");
     process.exit(0);
 }
 

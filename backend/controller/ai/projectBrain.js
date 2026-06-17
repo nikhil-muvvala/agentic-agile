@@ -1,6 +1,6 @@
 import { aiClient } from "../../config/ai.js";
 import { db } from "../../db/index.js";
-import { projectKnowledgeTable } from "../../models/index.js";
+import { projectKnowledgeTable, projectMembers, usersTable } from "../../models/index.js";
 import { eq, and, sql } from "drizzle-orm";
 
 export const chatWithProject = async function(req, res) {
@@ -58,9 +58,21 @@ export const chatWithProject = async function(req, res) {
             }).join("\n\n");
         }
 
-        // 4. Construct the RAG Prompt
+        // 4. Fetch Roster to map IDs to Names
+        const roster = await db.select({
+            id: usersTable.id,
+            name: usersTable.name
+        })
+        .from(projectMembers)
+        .leftJoin(usersTable, eq(projectMembers.userId, usersTable.id))
+        .where(eq(projectMembers.projectId, projectId));
+        
+        const rosterMap = roster.map(m => `User ID ${m.id} = ${m.name}`).join(", ");
+
+        // 5. Construct the RAG Prompt
         const systemPrompt = `You are the AI Project Brain for this Agile Workspace.
 Your job is to answer the user's question using ONLY the provided project memories below.
+If the memories mention a User ID, you MUST use their real name from this roster: [${rosterMap}].
 If the memories are insufficient or you do not know the answer, say so honestly. Do not hallucinate or make up technical decisions.
 
 IMPORTANT: Respond directly to the user in a friendly, conversational tone using plain text or Markdown. DO NOT output JSON.

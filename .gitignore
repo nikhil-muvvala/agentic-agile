@@ -29,3 +29,11 @@ frontend/build/
 
 # Docker
 docker-compose.yml
+
+# Backend Scripts
+backend/seedMockData.js
+backend/seedMemories.js
+backend/enable-vector.js
+backend/test-db.js
+backend/test2.js
+backend/test3.js

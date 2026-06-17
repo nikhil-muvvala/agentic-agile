@@ -13,6 +13,25 @@ const TaskDetailsModal = ({ projectId, taskId, onClose, userRole, members }) => 
   const [aiSuggestions, setAiSuggestions] = useState([]);
   const [selectedAiSuggestions, setSelectedAiSuggestions] = useState(new Set());
 
+  const formatMemberName = (member) => {
+    if (!member || !member.user) return 'Unassigned';
+    let displayName = member.user.name;
+    if (member.user.id === user.id) displayName += " (Me)";
+    else if (member.role === 'admin') displayName += " (Admin)";
+    else if (member.role === 'project_admin') displayName += " (Project Admin)";
+    return `${displayName} - ${member.user.email}`;
+  };
+
+  const sortedMembers = members ? [...members].sort((a, b) => {
+    if (a.user.id === user.id) return -1;
+    if (b.user.id === user.id) return 1;
+    if (a.role === 'admin' && b.role !== 'admin') return -1;
+    if (b.role === 'admin' && a.role !== 'admin') return 1;
+    if (a.role === 'project_admin' && b.role !== 'project_admin') return -1;
+    if (b.role === 'project_admin' && a.role !== 'project_admin') return 1;
+    return a.user.name.localeCompare(b.user.name);
+  }) : [];
+
   const socket = useContext(SocketContext);
 
   useEffect(() => {
@@ -295,13 +314,13 @@ const TaskDetailsModal = ({ projectId, taskId, onClose, userRole, members }) => 
                 onChange={(e) => handleAssigneeChange(e.target.value)}
               >
                 <option value="">Unassigned</option>
-                {members?.map(m => (
-                  <option key={m.user?.id} value={m.user?.id}>{m.user?.name}</option>
+                {sortedMembers.map(m => (
+                  <option key={m.user?.id} value={m.user?.id}>{formatMemberName(m)}</option>
                 ))}
               </select>
             ) : (
               <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-                Assigned to: {task.assignee ? task.assignee.name : 'Unassigned'}
+                Assigned to: {task.assignee ? formatMemberName(members?.find(m => m.user?.id === task.assignee.id)) : 'Unassigned'}
               </span>
             )}
           </div>

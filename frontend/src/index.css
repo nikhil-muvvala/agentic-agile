@@ -115,6 +115,16 @@ body {
   transition: all 0.3s ease;
 }
 
+select.form-input option {
+  background-color: var(--bg-secondary);
+  color: var(--text-primary);
+}
+
+input[type="date"].form-input {
+  background-color: rgba(0, 0, 0, 0.3);
+  color: white;
+}
+
 .form-input:focus {
   outline: none;
   border-color: var(--accent-primary);
@@ -128,14 +138,16 @@ input[type="date"] {
 
 input[type="date"]::-webkit-calendar-picker-indicator {
   cursor: pointer;
-  opacity: 0.6;
+  opacity: 1;
   transition: 0.2s;
-  /* Invert color to make it white in dark mode */
-  filter: invert(0.8) sepia(1) hue-rotate(180deg);
 }
 
 input[type="date"]::-webkit-calendar-picker-indicator:hover {
-  opacity: 1;
+  opacity: 0.8;
+}
+
+select.form-input {
+  cursor: pointer;
 }
 
 /* Typography */
