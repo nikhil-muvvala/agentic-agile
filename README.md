@@ -1,5 +1,7 @@
 #  Agentic AI Project Management Dashboard
 
+**🔴 Live Demo:** [https://agentic-agile.vercel.app](https://agentic-agile.vercel.app)
+
 A next-generation, full-stack Kanban project management platform powered by **Real-Time WebSockets** and **Google Gemini Agentic AI**. Built to help engineering teams collaborate faster, avoid duplicate work, and make smarter management decisions using AI.
 
 ##  Core Features
