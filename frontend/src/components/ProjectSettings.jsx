@@ -5,27 +5,37 @@ import api from '../services/api';
 const ProjectSettings = ({ projectId, projectData, userRole }) => {
   const [name, setName] = useState(projectData?.name || '');
   const [description, setDescription] = useState(projectData?.description || '');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
   const navigate = useNavigate();
 
   const handleUpdate = async (e) => {
     e.preventDefault();
+    if (isSubmitting) return;
+    setIsSubmitting(true);
     try {
       await api.patch(`/projects/${projectId}`, { name, description });
       alert("Project updated successfully!");
       window.location.reload(); // Quick refresh to update headers
     } catch (err) {
       alert(err.response?.data?.message || 'Error updating project');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
   const handleDelete = async () => {
     if (!window.confirm("CRITICAL WARNING: Are you sure you want to permanently delete this project? This cannot be undone.")) return;
+    if (isDeleting) return;
+    setIsDeleting(true);
     try {
       await api.delete(`/projects/${projectId}`);
       alert("Project deleted.");
       navigate('/');
     } catch (err) {
       alert(err.response?.data?.message || 'Error deleting project');
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -56,7 +66,9 @@ const ProjectSettings = ({ projectId, projectData, userRole }) => {
               required 
             />
           </div>
-          <button type="submit" className="btn btn-primary">Save Changes</button>
+          <button type="submit" className="btn btn-primary" disabled={isSubmitting}>
+            {isSubmitting ? 'Saving...' : 'Save Changes'}
+          </button>
         </form>
       </div>
 
@@ -66,8 +78,8 @@ const ProjectSettings = ({ projectId, projectData, userRole }) => {
           <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '1.5rem' }}>
             Deleting a project will remove all of its tasks, subtasks, members, and notes. This action is irreversible.
           </p>
-          <button onClick={handleDelete} className="btn" style={{ background: 'rgba(239, 68, 68, 0.1)', color: 'var(--error)', border: '1px solid var(--error)' }}>
-            Delete Project Permanently
+          <button onClick={handleDelete} className="btn" style={{ background: 'rgba(239, 68, 68, 0.1)', color: 'var(--error)', border: '1px solid var(--error)' }} disabled={isDeleting}>
+            {isDeleting ? 'Deleting...' : 'Delete Project Permanently'}
           </button>
         </div>
       )}

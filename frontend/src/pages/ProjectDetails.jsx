@@ -36,7 +36,11 @@ const ProjectDetails = () => {
   };
 
   if (loading) {
-    return <div className="container" style={{ marginTop: '2rem' }}>Loading project...</div>;
+    return (
+      <div className="container" style={{ marginTop: '2rem' }}>
+        <div className="spinner-container"><div className="spinner"></div></div>
+      </div>
+    );
   }
 
   if (!project) {

@@ -110,6 +110,7 @@ const ProjectTasks = ({ projectId, userRole }) => {
   const [showForm, setShowForm] = useState(false);
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [assigneeId, setAssigneeId] = useState('');
   const [targetDate, setTargetDate] = useState('');
   const [isAgentEnabled, setIsAgentEnabled] = useState(true);
@@ -215,6 +216,8 @@ const ProjectTasks = ({ projectId, userRole }) => {
 
   const handleCreateTask = async (e) => {
     e.preventDefault();
+    if (isSubmitting) return;
+    setIsSubmitting(true);
     try {
       const payload = { title, description, isAgentEnabled };
       if (assigneeId) payload.assigneeId = parseInt(assigneeId);
@@ -230,6 +233,8 @@ const ProjectTasks = ({ projectId, userRole }) => {
       fetchTasks();
     } catch (err) {
       alert(err.response?.data?.message || 'Error creating task');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -320,7 +325,7 @@ const ProjectTasks = ({ projectId, userRole }) => {
     return `${displayName} - ${member.user.email}`;
   };
 
-  if (loading) return <p>Loading tasks...</p>;
+  if (loading) return <div className="spinner-container"><div className="spinner"></div></div>;
 
   const sortedMembers = [...members].sort((a, b) => {
     if (a.user.id === user.id) return -1;
@@ -454,7 +459,9 @@ const ProjectTasks = ({ projectId, userRole }) => {
                 </button>
               </div>
             </div>
-            <button type="submit" className="btn btn-primary" style={{ width: '100%', padding: '0.8rem', fontSize: '1rem', marginTop: '0.5rem' }}>Create Task</button>
+            <button type="submit" className="btn btn-primary" style={{ width: '100%', padding: '0.8rem', fontSize: '1rem', marginTop: '0.5rem' }} disabled={isSubmitting}>
+              {isSubmitting ? 'Creating...' : 'Create Task'}
+            </button>
           </form>
         </div>
       )}

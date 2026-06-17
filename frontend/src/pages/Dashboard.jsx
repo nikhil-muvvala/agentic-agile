@@ -13,6 +13,7 @@ const Dashboard = () => {
   const [showForm, setShowForm] = useState(false);
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     fetchProjects();
@@ -31,6 +32,8 @@ const Dashboard = () => {
 
   const handleCreateProject = async (e) => {
     e.preventDefault();
+    if (isSubmitting) return;
+    setIsSubmitting(true);
     try {
       await api.post('/projects/project-creation', { name, description });
       setName('');
@@ -39,6 +42,8 @@ const Dashboard = () => {
       fetchProjects(); // Refresh the list
     } catch (err) {
       alert(err.response?.data?.message || 'Error creating project');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -64,13 +69,15 @@ const Dashboard = () => {
                 <label className="form-label">Description</label>
                 <textarea className="form-input" value={description} onChange={(e) => setDescription(e.target.value)} rows="3" required></textarea>
               </div>
-              <button type="submit" className="btn btn-primary">Create</button>
+              <button type="submit" className="btn btn-primary" disabled={isSubmitting}>
+                {isSubmitting ? 'Creating...' : 'Create'}
+              </button>
             </form>
           </div>
         )}
 
         {loading ? (
-          <p>Loading projects...</p>
+          <div className="spinner-container"><div className="spinner"></div></div>
         ) : projects.length === 0 ? (
           <div className="glass-panel" style={{ padding: '4rem', textAlign: 'center', color: 'var(--text-secondary)' }}>
             <p>You don't have any projects yet. Create one to get started!</p>

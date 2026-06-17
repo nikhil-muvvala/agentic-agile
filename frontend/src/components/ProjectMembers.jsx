@@ -8,6 +8,7 @@ const ProjectMembers = ({ projectId, userRole }) => {
   const [showForm, setShowForm] = useState(false);
   const [newUserEmail, setNewUserEmail] = useState('');
   const [newMemberRole, setNewMemberRole] = useState('member');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const socket = useContext(SocketContext);
 
@@ -66,6 +67,8 @@ const ProjectMembers = ({ projectId, userRole }) => {
 
   const handleAddMember = async (e) => {
     e.preventDefault();
+    if (isSubmitting) return;
+    setIsSubmitting(true);
     try {
       await api.post(`/projects/${projectId}/members`, { email: newUserEmail, role: newMemberRole });
       setNewUserEmail('');
@@ -74,6 +77,8 @@ const ProjectMembers = ({ projectId, userRole }) => {
       // Removed fetchMembers() because socket handles it
     } catch (err) {
       alert(err.response?.data?.message || 'Error adding member');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -87,7 +92,7 @@ const ProjectMembers = ({ projectId, userRole }) => {
     }
   };
 
-  if (loading) return <p>Loading members...</p>;
+  if (loading) return <div className="spinner-container"><div className="spinner"></div></div>;
 
   return (
     <div>
@@ -116,7 +121,9 @@ const ProjectMembers = ({ projectId, userRole }) => {
                 <option value="admin">Admin</option>
               </select>
             </div>
-            <button type="submit" className="btn btn-primary" style={{ padding: '0.75rem 2rem' }}>Add</button>
+            <button type="submit" className="btn btn-primary" style={{ padding: '0.75rem 2rem' }} disabled={isSubmitting}>
+              {isSubmitting ? 'Adding...' : 'Add'}
+            </button>
           </form>
         </div>
       )}

@@ -10,6 +10,7 @@ const TaskDetailsModal = ({ projectId, taskId, onClose, userRole, members }) => 
   const [newSubtask, setNewSubtask] = useState('');
   const [uploadingFile, setUploadingFile] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [aiSuggestions, setAiSuggestions] = useState([]);
   const [selectedAiSuggestions, setSelectedAiSuggestions] = useState(new Set());
 
@@ -133,23 +134,29 @@ const TaskDetailsModal = ({ projectId, taskId, onClose, userRole, members }) => 
 
   const handleDeleteTask = async () => {
     if (!window.confirm("Are you sure you want to completely delete this task? This cannot be undone.")) return;
+    if (isSubmitting) return;
+    setIsSubmitting(true);
     try {
       await api.delete(`/tasks/${projectId}/t/${taskId}`);
       onClose(); // Close modal, the websocket will remove it from the board
     } catch (err) {
       alert(err.response?.data?.message || 'Error deleting task');
+      setIsSubmitting(false);
     }
   };
 
   const handleAddSubtask = async (e) => {
     e.preventDefault();
-    if (!newSubtask.trim()) return;
+    if (!newSubtask.trim() || isSubmitting) return;
+    setIsSubmitting(true);
     try {
       await api.post(`/projects/${projectId}/t/${taskId}/subtasks`, { title: newSubtask });
       setNewSubtask('');
       // fetchTaskDetails() removed because socket handles it
     } catch (err) {
       alert(err.response?.data?.message || 'Error adding subtask');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -255,7 +262,15 @@ const TaskDetailsModal = ({ projectId, taskId, onClose, userRole, members }) => 
     }
   };
 
-  if (loading) return null; // Or a spinner
+  if (loading) return (
+    <div style={{
+      position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+      background: 'rgba(15, 23, 42, 0.8)', backdropFilter: 'blur(4px)',
+      display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000
+    }}>
+      <div className="spinner-container"><div className="spinner"></div></div>
+    </div>
+  );
 
   return (
     <div style={{
@@ -282,9 +297,10 @@ const TaskDetailsModal = ({ projectId, taskId, onClose, userRole, members }) => 
               <button 
                 onClick={handleDeleteTask}
                 className="btn"
+                disabled={isSubmitting}
                 style={{ background: 'rgba(239, 68, 68, 0.1)', color: 'var(--error)', border: '1px solid rgba(239, 68, 68, 0.3)', padding: '0.2rem 0.6rem', fontSize: '0.75rem', borderRadius: '4px', marginBottom: '0.5rem' }}
               >
-                Delete Task
+                {isSubmitting ? 'Deleting...' : 'Delete Task'}
               </button>
             )}
             
@@ -360,7 +376,9 @@ const TaskDetailsModal = ({ projectId, taskId, onClose, userRole, members }) => 
               onChange={(e) => setNewSubtask(e.target.value)}
               style={{ flex: 1 }}
             />
-            <button type="submit" className="btn btn-primary" style={{ padding: '0.5rem 1rem' }}>Add</button>
+            <button type="submit" className="btn btn-primary" style={{ padding: '0.5rem 1rem' }} disabled={isSubmitting}>
+              {isSubmitting ? '...' : 'Add'}
+            </button>
             
             {/* The AI Breakdown Button */}
             <button 

@@ -7,16 +7,20 @@ const Login = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const { login, loginWithGoogle } = useContext(AuthContext);
   const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (isSubmitting) return;
+    setIsSubmitting(true);
     try {
       await login(email, password);
       navigate('/');
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to login');
+      setIsSubmitting(false);
     }
   };
 
@@ -61,8 +65,8 @@ const Login = () => {
             />
           </div>
           
-          <button type="submit" className="btn btn-primary" style={{ width: '100%', marginTop: '1rem' }}>
-            Sign In
+          <button type="submit" className="btn btn-primary" style={{ width: '100%', marginTop: '1rem' }} disabled={isSubmitting}>
+            {isSubmitting ? 'Signing In...' : 'Sign In'}
           </button>
         </form>
 

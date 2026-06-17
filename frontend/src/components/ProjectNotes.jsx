@@ -9,6 +9,7 @@ const ProjectNotes = ({ projectId, userRole }) => {
   const [showForm, setShowForm] = useState(false);
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const socket = useContext(SocketContext);
 
@@ -64,6 +65,8 @@ const ProjectNotes = ({ projectId, userRole }) => {
 
   const handleCreateNote = async (e) => {
     e.preventDefault();
+    if (isSubmitting) return;
+    setIsSubmitting(true);
     try {
       await api.post(`/projects/${projectId}/notes`, { title, content });
       setTitle('');
@@ -72,6 +75,8 @@ const ProjectNotes = ({ projectId, userRole }) => {
       // Removed fetchNotes() because socket handles it
     } catch (err) {
       alert(err.response?.data?.message || 'Error creating note');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -85,7 +90,7 @@ const ProjectNotes = ({ projectId, userRole }) => {
     }
   };
 
-  if (loading) return <p>Loading notes...</p>;
+  if (loading) return <div className="spinner-container"><div className="spinner"></div></div>;
 
   return (
     <div>
@@ -123,7 +128,9 @@ const ProjectNotes = ({ projectId, userRole }) => {
                 required
               />
             </div>
-            <button type="submit" className="btn btn-primary">Save Note</button>
+            <button type="submit" className="btn btn-primary" disabled={isSubmitting}>
+              {isSubmitting ? 'Saving...' : 'Save Note'}
+            </button>
           </form>
         </div>
       )}
