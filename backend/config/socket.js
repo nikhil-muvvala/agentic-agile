@@ -8,7 +8,7 @@ export const initSocket = (server) => {
   // 1. Initialize Socket.IO with CORS settings
   io = new Server(server, {
     cors: {
-      origin: ["http://localhost:5173","https://admin.socket.io"], // Your Vite frontend URL
+      origin: [process.env.FRONTEND_URL || "http://localhost:5173", "https://admin.socket.io"], // Dynamically accept local or deployed frontend
       methods: ["GET", "POST", "PATCH", "DELETE"],
       credentials: true
     }

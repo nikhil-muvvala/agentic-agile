@@ -19,7 +19,10 @@ const PORT = 3000;
 
 // Initialize Socket.io
 initSocket(server);
-app.use(cors());
+app.use(cors({
+    origin: process.env.FRONTEND_URL || "http://localhost:5173",
+    credentials: true
+}));
 
 
 app.get("/api/v1/healthcheck", (req, res) => {
