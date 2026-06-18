@@ -25,11 +25,14 @@ const Login = () => {
   };
 
   const handleGoogleSuccess = async (credentialResponse) => {
+    if (isSubmitting) return;
+    setIsSubmitting(true);
     try {
       await loginWithGoogle(credentialResponse.credential);
       navigate('/');
     } catch (err) {
       setError(err.response?.data?.message || 'Google login failed');
+      setIsSubmitting(false);
     }
   };
 
@@ -40,54 +43,63 @@ const Login = () => {
         
         {error && <div style={{ color: 'var(--error)', marginBottom: '1rem', textAlign: 'center' }}>{error}</div>}
         
-        <form onSubmit={handleSubmit}>
-          <div className="form-group">
-            <label className="form-label">Email</label>
-            <input 
-              type="email" 
-              className="form-input" 
-              value={email} 
-              onChange={(e) => setEmail(e.target.value)} 
-              required 
-              placeholder="you@example.com"
-            />
+        {isSubmitting ? (
+          <div style={{ padding: '3rem 0', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+            <div className="spinner"></div>
+            <p style={{ marginTop: '1rem', color: 'var(--text-secondary)' }}>Authenticating...</p>
           </div>
-          
-          <div className="form-group">
-            <label className="form-label">Password</label>
-            <input 
-              type="password" 
-              className="form-input" 
-              value={password} 
-              onChange={(e) => setPassword(e.target.value)} 
-              required 
-              placeholder="••••••••"
-            />
-          </div>
-          
-          <button type="submit" className="btn btn-primary" style={{ width: '100%', marginTop: '1rem' }} disabled={isSubmitting}>
-            {isSubmitting ? 'Signing In...' : 'Sign In'}
-          </button>
-        </form>
+        ) : (
+          <>
+            <form onSubmit={handleSubmit}>
+              <div className="form-group">
+                <label className="form-label">Email</label>
+                <input 
+                  type="email" 
+                  className="form-input" 
+                  value={email} 
+                  onChange={(e) => setEmail(e.target.value)} 
+                  required 
+                  placeholder="you@example.com"
+                />
+              </div>
+              
+              <div className="form-group">
+                <label className="form-label">Password</label>
+                <input 
+                  type="password" 
+                  className="form-input" 
+                  value={password} 
+                  onChange={(e) => setPassword(e.target.value)} 
+                  required 
+                  placeholder="••••••••"
+                />
+              </div>
+              
+              <button type="submit" className="btn btn-primary" style={{ width: '100%', marginTop: '1rem' }} disabled={isSubmitting}>
+                Sign In
+              </button>
+            </form>
 
-        <div style={{ display: 'flex', alignItems: 'center', margin: '1.5rem 0' }}>
-          <div style={{ flex: 1, height: '1px', background: 'var(--border-light)' }}></div>
-          <span style={{ padding: '0 1rem', color: 'var(--text-secondary)', fontSize: '0.9rem' }}>or</span>
-          <div style={{ flex: 1, height: '1px', background: 'var(--border-light)' }}></div>
-        </div>
+            <div style={{ display: 'flex', alignItems: 'center', margin: '1.5rem 0' }}>
+              <div style={{ flex: 1, height: '1px', background: 'var(--border-light)' }}></div>
+              <span style={{ padding: '0 1rem', color: 'var(--text-secondary)', fontSize: '0.9rem' }}>or</span>
+              <div style={{ flex: 1, height: '1px', background: 'var(--border-light)' }}></div>
+            </div>
 
-        <div style={{ display: 'flex', justifyContent: 'center' }}>
-          <GoogleLogin 
-            onSuccess={handleGoogleSuccess}
-            onError={() => setError('Google Login Failed')}
-            theme="filled_black"
-            shape="rectangular"
-          />
-        </div>
-        
-        <p style={{ textAlign: 'center', marginTop: '1.5rem', color: 'var(--text-secondary)' }}>
-          Don't have an account? <Link to="/register" style={{ color: 'var(--accent-primary)', textDecoration: 'none' }}>Register here</Link>
-        </p>
+            <div style={{ display: 'flex', justifyContent: 'center' }}>
+              <GoogleLogin 
+                onSuccess={handleGoogleSuccess}
+                onError={() => setError('Google Login Failed')}
+                theme="filled_black"
+                shape="rectangular"
+              />
+            </div>
+            
+            <p style={{ textAlign: 'center', marginTop: '1.5rem', color: 'var(--text-secondary)' }}>
+              Don't have an account? <Link to="/register" style={{ color: 'var(--accent-primary)', textDecoration: 'none' }}>Register here</Link>
+            </p>
+          </>
+        )}
       </div>
     </div>
   );
