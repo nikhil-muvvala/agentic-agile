@@ -1,6 +1,4 @@
 import { OAuth2Client } from 'google-auth-library';
-import bcrypt from 'bcrypt';
-import crypto from 'crypto';
 import { validateUser } from '../../services/validateUser.js';
 import { webToken, generateRefreshToken } from '../../utils/accesstoken.js';
 import { db } from '../../db/index.js';
@@ -40,16 +38,10 @@ export const googleLogin = async (req, res) => {
 
     if (result.length === 0) {
       // 4. User does not exist, create a new one. 
-      // Because Google users don't have a password in our system, we generate a massive random hash 
-      // to satisfy the NOT NULL database constraint securely.
-      const randomSecurePassword = crypto.randomBytes(32).toString('hex');
-      const hashedPassword = await bcrypt.hash(randomSecurePassword, 10);
-
       const [newUser] = await db.insert(usersTable)
         .values({ 
           name: name || email.split('@')[0], 
-          email, 
-          password: hashedPassword 
+          email 
         })
         .returning();
         
