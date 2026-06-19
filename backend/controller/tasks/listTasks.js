@@ -15,6 +15,7 @@ export const listTasks = async function(req, res) {
                 description: tasksTable.description,
                 status: tasksTable.status,
                 createdAt: tasksTable.createdAt,
+                targetDate: tasksTable.targetDate,
                 assignee: {
                     id: usersTable.id,
                     name: usersTable.name,

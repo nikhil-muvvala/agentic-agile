@@ -61,15 +61,14 @@ export const updateTaskStatus = async function(req, res) {
             }
         }
 
-        if (status === 'done') {
-            try {
-                // Project Knowledge Ingestion (Level 4 RAG)
-                const memoryContent = `Task Title: ${updatedTask.title}\nDescription: ${updatedTask.description || 'No description provided.'}`;
-                // Run asynchronously without blocking the API response
-                ingestMemory(projectId, memoryContent, 'task_completion', taskId);
-            } catch (err) {
-                console.error("[Project Brain Ingestion Error]", err);
-            }
+        try {
+            // Project Knowledge Ingestion (Level 4 RAG)
+            const assigneeContext = updatedTask.assigneeId ? `Assigned to user ID ${updatedTask.assigneeId}.` : "Unassigned.";
+            const memoryContent = `Task Title: ${updatedTask.title}\nDescription: ${updatedTask.description || 'No description provided.'}\nStatus changed to: ${status}\n${assigneeContext}`;
+            // Run asynchronously without blocking the API response
+            ingestMemory(projectId, memoryContent, 'task_status_update', taskId).catch(console.error);
+        } catch (err) {
+            console.error("[Project Brain Ingestion Error]", err);
         }
 
         // Emit real-time event to the specific project room!

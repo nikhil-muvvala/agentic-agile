@@ -3,6 +3,7 @@ import { tasksTable, projectsTable } from "../../models/index.js";
 import { eq, and } from "drizzle-orm";
 import { getIO } from "../../config/socket.js";
 import { createNotification } from "../../services/addNotification.js";
+import { ingestMemory } from "../../services/memoryIngestion.js";
 
 export const updateTaskDetails = async function(req, res) {
     try {
@@ -46,6 +47,11 @@ export const updateTaskDetails = async function(req, res) {
             const projectName = projectInfo ? projectInfo.name : "a project";
             await createNotification(updateData.assigneeId, req.user.id, `You have been assigned to '${updatedTask.title}' in ${projectName}`);
         }
+
+        // Project Knowledge Ingestion
+        const assigneeContext = updatedTask.assigneeId ? `Assigned to user ID ${updatedTask.assigneeId}.` : "Unassigned.";
+        const memoryContent = `Task Title: ${updatedTask.title}\nDescription: ${updatedTask.description || 'No description provided.'}\nStatus: ${updatedTask.status}\n${assigneeContext}`;
+        ingestMemory(projectId, memoryContent, 'task_update', taskId).catch(console.error);
 
         return res.status(200).json({ message: "Task details updated successfully", task: updatedTask });
 
