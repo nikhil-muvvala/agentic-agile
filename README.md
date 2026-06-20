@@ -2,29 +2,42 @@
 
 **Live Demo:** [https://agentic-agile.vercel.app](https://agentic-agile.vercel.app)
 
-A next-generation, full-stack Kanban project management platform powered by **Real-Time WebSockets** and **Google Gemini Agentic AI**. Built to help engineering teams collaborate faster, avoid duplicate work, and make smarter management decisions using AI.
+A full-stack Kanban project management platform built with real-time WebSockets, role-based access control, and several AI features powered by Google Gemini and local embedding models. One of those features are genuine autonomous agents that use function-calling to decide their own next steps; the rest are deliberately single-shot LLM calls, chosen because the task didn't need iterative reasoning.
+
+Why this exists: most Kanban tools track work but don't reason about it — a human still has to manually notice duplicate tasks, notice who's free for new work, and write the standup summary by hand. This project explores how much of that reasoning can be offloaded to a background agent watching task events, plus a handful of narrowly-scoped LLM calls, without defaulting to "AI-powered" for features that don't actually benefit from it.
 
 ##  Core Features
 
 ###  Secure & Collaborative
-*   **Role-Based Access Control (RBAC):** Strict permission boundaries for Admins, Project Admins, and Members. Only Admins can delete tasks or trigger AI management actions.
+*   **Role-Based Access Control (RBAC):** Three roles — `admin`, `project_admin`, `member` — enforced server-side on every request against the database, not just trusted from a JWT claim.
 *   **Real-Time WebSockets:** Instantly syncs task movements, status updates, and deletions across all connected users without refreshing the page.
 *   **Cloud Attachments:** Seamlessly upload and attach images/documents to tasks using Cloudinary.
 *   **Target Dates:** Built-in deadlines with visual warnings for overdue tasks.
 
-###  Why this is better than Jira or Basecamp
-Most project management tools (like Jira, Trello, or Basecamp) are fundamentally just **dumb databases**. They act as digital whiteboards where a human Project Manager has to spend 15 hours a week manually grooming backlogs, checking capacities, and typing out standup reports. They *track* work, but they don't *manage* it.
+## AI Features
+ 
+There are six distinct AI features in this project. Only one is a genuine autonomous agent; the rest are single-shot LLM calls.
+ 
+### Autonomous Agent (multi-turn, function-calling)
+ 
+**1. Event-Driven Engineering Manager Agent** — Fires automatically on task lifecycle events (`TASK_CREATED`, `TASK_STATUS_CHANGED`,`TASK_UPDATED` , `TASK_DELETED`), not on a schedule. It's given four tools (`get_related_open_tasks`, `get_user_capacity`, `search_past_solutions`, `get_task_recommendations`) and decides which to call based on the event type — a `BLOCKED` task triggers a historical-solution search; a completed task triggers a capacity check, which can itself trigger a follow-up recommendation lookup if the assignee turns out to be free. It notifies the relevant project admins over WebSocket and persists the alert to their notification inbox.
 
-This platform is the first truly **Agentic Project Management Platform**. It features an autonomous background agent and a suite of on-demand AI tools powered by `@google/genai` (Gemini 2.5) and local Machine Learning that actively manage the project alongside you:
+### Single-Shot AI Features
+ 
+These are built as one prompt → one structured response. These features were designed this way because the task doesn't benefit from iterative tool use.
+ 
+**2. Suggest Assignee** — A Single-Shot RAG (Retrieval-Augmented Generation) implementation that helps a Project Admin decide who should work on a specific task. When triggered manually via the UI, the backend pre-fetch historical vector similarities, current active workloads, and user skill tags, packaging them into a single prompt. This ensures the LLM has complete context to mathematically recommend the best candidate without needing iterative function-calling.
+ 
+**3. Duplicate Task Detector** — A three-tier pipeline on task creation: a local embedding model (`Xenova/all-MiniLM-L6-v2`) does a free, fast semantic-overlap check first; only if that passes does it escalate to a Gemini call  if any depended or overlapped task finds, it sends a real-time WebSocket warning. The local-first tiering exists specifically to avoid paying for an LLM call on every task creation.
+ 
+**4. AI Task Breakdown** — Generates subtasks from a task title/description, with memory of previously rejected suggestions so it doesn't repeat them, and an abort path if the input looks like gibberish.
+ 
+**5. AI Standup Generator** — Reads the last 24 hours of project activity from the database and generates a daily summary of progress and blockers.
+ 
+**6. Project Brain (RAG Chatbot)** —  A conversational AI that perfectly understands both the present state and past history of your project. Ask it "Who is working on the Stripe API?" or "Why was the database task blocked yesterday?" and it will instantly answer using a hybrid "Whiteboard + Diary" architecture. The **frontend UI** acts as its short-term memory (remembering the flow of your current conversation), while the **backend `pgvector` database** acts as its permanent long-term memory (recalling historical project events and decisions).
 
-1.  ** Background AI Gatekeeper (Local ML):** Uses local Machine Learning (`Xenova/all-MiniLM-L6-v2`) to perform zero-cost semantic overlap analysis in the background. If you try to create a duplicate bug ticket that someone else already logged, the AI intercepts it and sends a real-time WebSocket warning before the duplicate work is even started.
-2.  ** The Skill-Memory Agent (Suggest Assignee):** Jira forces you to manually guess who is available. Our AI acts as a virtual Engineering Manager. Using **Function Calling**, the AI independently queries the PostgreSQL database, analyzes workload and semantic history to recommend the right person.
-3.  ** The Multi-Step Planning Agent (Project Health Advisor):** A background cron job that wakes up every morning at 9:00 AM, surveys the health of every project, evaluates the subtask progress of all at-risk tasks, and sends intelligent reassignment recommendations directly to the Project Admin's notification bell. 
-4.  ** AI Task Breakdown:** Instead of spending an hour writing subtasks, a Product Manager can just type "Build Login Page", and the AI instantly generates the database schema, frontend UI, and API subtasks required to build it.
-5.  ** AI Standup Generator:** Automatically reads all activity in your project from the last 24 hours and generates a perfect "Daily Standup" summary of what the team accomplished and what is blocking progress.
-6.  **The Project Brain (Context-Aware Chatbot):** A conversational AI that perfectly understands both the present state and past history of your project. Ask it "Who is working on the Stripe API?" or "Why was the database task blocked yesterday?" and it will instantly answer using a hybrid "Whiteboard + Diary" architecture. The **frontend UI** acts as its short-term memory (remembering the flow of your current conversation), while the **backend `pgvector` database** acts as its permanent long-term memory (recalling historical project events and decisions).
-
----
+ 
+**Nightly Project Health Advisor** is a related but separate background job (see Architecture below) — a `pg-boss`-scheduled sweep, not a per-event agent, that batches all overdue tasks per project into a single Gemini call to flag at-risk work.
 
 ##  System Architecture & Scalability Strategy
 
