@@ -240,7 +240,7 @@ If no action is needed, set shouldNotify: false.`;
                 message: [{
                     functionResponse: {
                         name: call.name,
-                        response: result
+                        response: { data: result }
                     }
                 }]
             });

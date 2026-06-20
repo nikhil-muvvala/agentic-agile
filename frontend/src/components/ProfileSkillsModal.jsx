@@ -46,11 +46,11 @@ const ProfileSkillsModal = ({ onClose }) => {
   };
 
   return (
-    <div className="modal-overlay">
-      <div className="modal-content glass-panel" style={{ maxWidth: '400px' }}>
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal-content glass-panel" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '450px', padding: '2.5rem' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-          <h2 style={{ margin: 0, fontSize: '1.25rem' }}>My Skills</h2>
-          <button onClick={onClose} style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', fontSize: '1.5rem' }}>&times;</button>
+          <h2 className="text-gradient" style={{ margin: 0, fontSize: '1.75rem', fontWeight: '800' }}>My Skills</h2>
+          <button onClick={onClose} style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', fontSize: '1.5rem', transition: 'color 0.2s' }} onMouseEnter={(e) => e.currentTarget.style.color='white'} onMouseLeave={(e) => e.currentTarget.style.color='var(--text-secondary)'}>&times;</button>
         </div>
 
         {loading ? (
@@ -64,17 +64,17 @@ const ProfileSkillsModal = ({ onClose }) => {
             <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1rem' }}>
               <input
                 type="text"
-                className="input-field"
+                className="input-premium"
                 placeholder="e.g. React, Node.js, PostgreSQL"
                 value={newSkill}
                 onChange={(e) => setNewSkill(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && handleAddSkill()}
                 style={{ flex: 1 }}
               />
-              <button className="btn btn-primary" onClick={handleAddSkill}>Add</button>
+              <button className="btn-premium" onClick={handleAddSkill}>Add</button>
             </div>
 
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', marginBottom: '1.5rem', minHeight: '50px', padding: '0.5rem', background: 'var(--bg-secondary)', borderRadius: '4px' }}>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', marginBottom: '1.5rem', minHeight: '50px', padding: '1rem', background: 'rgba(255,255,255,0.02)', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.05)' }}>
               {skills.length === 0 && <span style={{ color: 'var(--text-secondary)', fontSize: '0.85rem' }}>No skills added yet.</span>}
               {skills.map((skill, index) => (
                 <div key={index} style={{ 
@@ -94,9 +94,9 @@ const ProfileSkillsModal = ({ onClose }) => {
               ))}
             </div>
 
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '1rem' }}>
-              <button className="btn" onClick={onClose} style={{ background: 'var(--bg-secondary)', color: 'var(--text-secondary)' }}>Cancel</button>
-              <button className="btn btn-primary" onClick={handleSave} disabled={saving}>
+            <div style={{ display: 'flex', gap: '1rem', marginTop: '2rem' }}>
+              <button className="btn-secondary" onClick={onClose} style={{ flex: 1 }}>Cancel</button>
+              <button className="btn-premium" onClick={handleSave} disabled={saving} style={{ flex: 1 }}>
                 {saving ? 'Saving...' : 'Save Profile'}
               </button>
             </div>

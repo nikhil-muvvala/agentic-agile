@@ -25,55 +25,65 @@ const UserProfileModal = ({ onClose }) => {
   };
 
   return (
-    <div className="modal-overlay">
-      <div className="modal-content glass-panel" style={{ maxWidth: '400px' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-          <h2 style={{ margin: 0, fontSize: '1.25rem' }}>My Profile</h2>
-          <button onClick={onClose} style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', fontSize: '1.5rem' }}>&times;</button>
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal-content glass-panel" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '450px', padding: '2.5rem' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
+          <h2 className="text-gradient" style={{ margin: 0, fontSize: '1.75rem', fontWeight: '800' }}>My Profile</h2>
+          <button onClick={onClose} style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', fontSize: '1.5rem', transition: 'color 0.2s' }} onMouseEnter={(e) => e.currentTarget.style.color='white'} onMouseLeave={(e) => e.currentTarget.style.color='var(--text-secondary)'}>&times;</button>
         </div>
 
         {error && <div style={{ color: 'var(--danger)', marginBottom: '1rem', fontSize: '0.9rem' }}>{error}</div>}
 
-        <div style={{ marginBottom: '1.5rem' }}>
-          <div style={{ marginBottom: '1rem' }}>
-            <label style={{ display: 'block', fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '0.3rem' }}>Email</label>
-            <div style={{ padding: '0.5rem', background: 'var(--bg-secondary)', borderRadius: '4px', color: 'var(--text-primary)', fontSize: '0.95rem' }}>
-              {user?.email}
-            </div>
-            <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Email cannot be changed</span>
+        <div style={{ marginBottom: '2rem' }}>
+          <div className="form-group" style={{ marginBottom: '1.5rem' }}>
+            <label className="form-label">Email Address</label>
+            <input 
+              type="text" 
+              className="input-premium" 
+              value={user?.email || ''} 
+              disabled 
+              style={{ opacity: 0.7, cursor: 'not-allowed' }} 
+            />
+            <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginTop: '0.5rem', display: 'block' }}>Email cannot be changed</span>
           </div>
 
-          <div style={{ marginBottom: '1rem' }}>
-            <label style={{ display: 'block', fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '0.3rem' }}>Name</label>
+          <div className="form-group">
+            <label className="form-label">Full Name</label>
             {isEditing ? (
               <input
                 type="text"
-                className="input-field"
+                className="input-premium"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 autoFocus
-                style={{ width: '100%' }}
               />
             ) : (
-              <div style={{ padding: '0.5rem', background: 'var(--bg-secondary)', borderRadius: '4px', color: 'var(--text-primary)', fontSize: '0.95rem' }}>
-                {user?.name}
-              </div>
+              <input 
+                type="text" 
+                className="input-premium" 
+                value={user?.name || ''} 
+                disabled 
+                style={{ opacity: 0.9, backgroundColor: 'rgba(255,255,255,0.02)' }} 
+              />
             )}
           </div>
         </div>
 
-        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '1rem' }}>
+        <div style={{ display: 'flex', gap: '1rem' }}>
           {isEditing ? (
             <>
-              <button className="btn" onClick={() => { setIsEditing(false); setName(user?.name); }} style={{ background: 'var(--bg-secondary)', color: 'var(--text-secondary)' }}>Cancel</button>
-              <button className="btn btn-primary" onClick={handleSave} disabled={saving || !name.trim()}>
-                {saving ? 'Saving...' : 'Save'}
+              <button className="btn-secondary" onClick={() => { setIsEditing(false); setName(user?.name); }} style={{ flex: 1 }}>Cancel</button>
+              <button className="btn-premium" onClick={handleSave} disabled={saving || !name.trim()} style={{ flex: 1 }}>
+                {saving ? 'Saving...' : 'Save Changes'}
               </button>
             </>
           ) : (
-            <button className="btn btn-primary" onClick={() => setIsEditing(true)}>
-              Edit
-            </button>
+            <>
+              <button className="btn-secondary" onClick={onClose} style={{ flex: 1 }}>Close</button>
+              <button className="btn-premium" onClick={() => setIsEditing(true)} style={{ flex: 1 }}>
+                Edit Profile
+              </button>
+            </>
           )}
         </div>
       </div>

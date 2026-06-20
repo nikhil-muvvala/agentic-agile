@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import api from '../services/api';
+import ReactMarkdown from 'react-markdown';
 import './ProjectBrainChat.css'; // We will create this
 
 const ProjectBrainChat = ({ projectId, isOpen, setIsOpen }) => {
@@ -81,20 +82,12 @@ const ProjectBrainChat = ({ projectId, isOpen, setIsOpen }) => {
                     {messages.map((msg, index) => (
                         <div key={index} className={`chat-bubble-container ${msg.role}`}>
                             <div className={`chat-bubble ${msg.role}`}>
-                                <p>{msg.text}</p>
+                                {msg.role === 'model' ? (
+                                    <ReactMarkdown>{msg.text}</ReactMarkdown>
+                                ) : (
+                                    <p>{msg.text}</p>
+                                )}
                             </div>
-                            
-                            {/* Render Citations if AI has sources */}
-                            {msg.role === 'model' && msg.sources && msg.sources.length > 0 && (
-                                <div className="chat-sources">
-                                    <span className="source-label">Sources:</span>
-                                    {msg.sources.map((src, i) => (
-                                        <span key={i} className="source-pill">
-                                            {src.type === 'task_completion' ? '📘 Task' : '📝 Note'} #{src.id}
-                                        </span>
-                                    ))}
-                                </div>
-                            )}
                         </div>
                     ))}
                     {isLoading && (

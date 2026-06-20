@@ -1,0 +1,62 @@
+/* Login.css - Authentication Page Styles */
+
+.login-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  position: relative;
+}
+
+.login-panel {
+  width: 100%;
+  max-width: 420px;
+  padding: 3.5rem 3rem;
+  position: relative;
+  z-index: 1;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+}
+
+.login-title {
+  text-align: center;
+  margin-bottom: 0.5rem;
+  font-size: 2.5rem;
+  font-weight: 800;
+}
+
+.login-subtitle {
+  text-align: center;
+  margin-bottom: 2.5rem;
+  color: var(--text-secondary);
+  font-size: 1.1rem;
+}
+
+.login-error {
+  color: var(--error);
+  margin-bottom: 1.5rem;
+  text-align: center;
+  background: rgba(239, 68, 68, 0.1);
+  padding: 0.75rem;
+  border-radius: 8px;
+  border: 1px solid rgba(239, 68, 68, 0.2);
+}
+
+.login-loading {
+  padding: 2rem 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.login-loading-text {
+  margin-top: 1rem;
+  color: var(--accent-primary);
+  font-weight: 500;
+}
+
+.google-btn-wrapper {
+  display: flex;
+  justify-content: center;
+  margin-top: 1rem;
+}

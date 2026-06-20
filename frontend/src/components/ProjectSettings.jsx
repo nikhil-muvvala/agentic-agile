@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
+import toast from 'react-hot-toast';
 
 const ProjectSettings = ({ projectId, projectData, userRole }) => {
   const [name, setName] = useState(projectData?.name || '');
@@ -9,16 +10,18 @@ const ProjectSettings = ({ projectId, projectData, userRole }) => {
   const [isDeleting, setIsDeleting] = useState(false);
   const navigate = useNavigate();
 
+  const isAdmin = userRole === 'admin' || userRole === 'project_admin';
+
   const handleUpdate = async (e) => {
     e.preventDefault();
+    if (!isAdmin) return;
     if (isSubmitting) return;
     setIsSubmitting(true);
     try {
       await api.patch(`/projects/${projectId}`, { name, description });
-      alert("Project updated successfully!");
-      window.location.reload(); // Quick refresh to update headers
+      toast.success("Project updated successfully!");
     } catch (err) {
-      alert(err.response?.data?.message || 'Error updating project');
+      toast.error(err.response?.data?.message || 'Error updating project');
     } finally {
       setIsSubmitting(false);
     }
@@ -30,10 +33,10 @@ const ProjectSettings = ({ projectId, projectData, userRole }) => {
     setIsDeleting(true);
     try {
       await api.delete(`/projects/${projectId}`);
-      alert("Project deleted.");
+      toast.success("Project deleted.");
       navigate('/');
     } catch (err) {
-      alert(err.response?.data?.message || 'Error deleting project');
+      toast.error(err.response?.data?.message || 'Error deleting project');
     } finally {
       setIsDeleting(false);
     }
@@ -54,6 +57,7 @@ const ProjectSettings = ({ projectId, projectData, userRole }) => {
               value={name} 
               onChange={(e) => setName(e.target.value)} 
               required 
+              disabled={!isAdmin}
             />
           </div>
           <div className="form-group">
@@ -64,11 +68,14 @@ const ProjectSettings = ({ projectId, projectData, userRole }) => {
               onChange={(e) => setDescription(e.target.value)} 
               rows="4" 
               required 
+              disabled={!isAdmin}
             />
           </div>
-          <button type="submit" className="btn btn-primary" disabled={isSubmitting}>
-            {isSubmitting ? 'Saving...' : 'Save Changes'}
-          </button>
+          {isAdmin && (
+            <button type="submit" className="btn btn-primary" disabled={isSubmitting}>
+              {isSubmitting ? 'Saving...' : 'Save Changes'}
+            </button>
+          )}
         </form>
       </div>
 

@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useContext } from 'react';
 import api from '../services/api';
 import { SocketContext } from '../context/SocketContext';
+import toast from 'react-hot-toast';
 
 const ProjectMembers = ({ projectId, userRole }) => {
   const [members, setMembers] = useState([]);
@@ -59,7 +60,7 @@ const ProjectMembers = ({ projectId, userRole }) => {
       setMembers(response.data);
     } catch (err) {
       console.error(err);
-      alert(err.response?.data?.message || 'Error fetching members');
+      toast.error(err.response?.data?.message || 'Error fetching members');
     } finally {
       setLoading(false);
     }
@@ -76,7 +77,7 @@ const ProjectMembers = ({ projectId, userRole }) => {
       setShowForm(false);
       // Removed fetchMembers() because socket handles it
     } catch (err) {
-      alert(err.response?.data?.message || 'Error adding member');
+      toast.error(err.response?.data?.message || 'Error adding member');
     } finally {
       setIsSubmitting(false);
     }
@@ -88,7 +89,7 @@ const ProjectMembers = ({ projectId, userRole }) => {
       await api.delete(`/projects/${projectId}/members/${targetUserId}`);
       // Removed fetchMembers() because socket handles it
     } catch (err) {
-      alert(err.response?.data?.message || 'Error removing member');
+      toast.error(err.response?.data?.message || 'Error removing member');
     }
   };
 
@@ -118,7 +119,6 @@ const ProjectMembers = ({ projectId, userRole }) => {
               <select className="form-input" value={newMemberRole} onChange={(e) => setNewMemberRole(e.target.value)}>
                 <option value="member">Member</option>
                 <option value="project_admin">Project Admin</option>
-                <option value="admin">Admin</option>
               </select>
             </div>
             <button type="submit" className="btn btn-primary" style={{ padding: '0.75rem 2rem' }} disabled={isSubmitting}>

@@ -1,13 +1,17 @@
+/* ProjectBrainChat.css - Premium Glassmorphism Theme */
+
 .project-brain-sidebar {
+    position: relative;
     display: flex;
     flex-direction: column;
-    height: 100%;
+    height: 100vh;
     width: 400px;
     min-width: 400px;
-    background: #fff;
-    border-left: 1px solid var(--border-light);
-    box-shadow: -5px 0 15px rgba(0,0,0,0.03);
+    background: #ffffff; /* Solid White */
+    border-left: 1px solid rgba(0, 0, 0, 0.1);
+    box-shadow: -5px 0 20px rgba(0, 0, 0, 0.15);
     transition: all 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+    z-index: 1050;
 }
 
 /* Floating Action Button (FAB) */
@@ -18,11 +22,11 @@
     width: 60px;
     height: 60px;
     border-radius: 50%;
-    background: linear-gradient(135deg, #6366f1, #a855f7);
+    background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
     color: white;
     font-size: 28px;
     border: none;
-    box-shadow: 0 10px 25px rgba(99, 102, 241, 0.4);
+    box-shadow: 0 10px 25px rgba(124, 58, 237, 0.4);
     cursor: pointer;
     transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275), box-shadow 0.3s ease;
     display: flex;
@@ -33,14 +37,15 @@
 
 .project-brain-fab:hover {
     transform: scale(1.1) translateY(-5px);
-    box-shadow: 0 15px 35px rgba(168, 85, 247, 0.5);
+    box-shadow: 0 15px 35px rgba(6, 182, 212, 0.5);
 }
 
 /* Header */
 .project-brain-header {
-    background: linear-gradient(135deg, #6366f1, #a855f7);
+    background: #a855f7; /* Solid Purple from screenshot */
+    border-bottom: none;
     color: white;
-    padding: 15px 20px;
+    padding: 1.5rem 1.5rem;
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -48,46 +53,51 @@
 
 .project-brain-header h3 {
     margin: 0;
-    font-size: 16px;
-    font-weight: 600;
+    font-size: 1.2rem;
+    font-weight: 700;
+    color: white; /* Solid white text instead of gradient */
 }
 
 .close-btn {
     background: transparent;
     border: none;
+    border-radius: 50%;
+    width: 32px;
+    height: 32px;
     color: white;
     font-size: 24px;
+    line-height: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     cursor: pointer;
-    opacity: 0.8;
-    transition: opacity 0.2s;
+    transition: all 0.2s;
 }
 
 .close-btn:hover {
-    opacity: 1;
+    background: rgba(255, 255, 255, 0.2);
+    transform: scale(1.1);
 }
-
-
 
 /* Message Area */
 .project-brain-messages {
     flex: 1;
-    padding: 20px;
+    padding: 1.5rem;
     overflow-y: auto;
     display: flex;
     flex-direction: column;
-    gap: 15px;
-    background: #f8fafc;
+    gap: 1.5rem;
 }
 
-.brain-empty-state {
-    text-align: center;
-    color: #64748b;
-    font-size: 14px;
-    margin-top: 40px;
-    padding: 20px;
-    background: white;
-    border-radius: 12px;
-    box-shadow: 0 2px 10px rgba(0,0,0,0.02);
+.brain-empty-state p {
+    color: #64748b; /* Slate gray text */
+}
+
+/* Chat Input Container */
+.chat-input-container {
+    padding: 1rem 1.5rem;
+    background: #f8fafc;
+    border-top: 1px solid #e2e8f0;
 }
 
 /* Chat Bubbles */
@@ -99,128 +109,51 @@
 
 .chat-bubble-container.user {
     align-self: flex-end;
-    align-items: flex-end;
 }
 
 .chat-bubble-container.model {
     align-self: flex-start;
-    align-items: flex-start;
 }
 
 .chat-bubble {
-    padding: 12px 16px;
-    border-radius: 18px;
-    font-size: 14px;
+    padding: 1rem 1.25rem;
+    border-radius: 16px;
+    font-size: 0.95rem;
     line-height: 1.5;
-    word-wrap: break-word;
-    box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+    position: relative;
+}
+
+.chat-bubble.user {
+    background: linear-gradient(135deg, var(--accent-primary), #4c1d95);
+    color: white;
+    border-bottom-right-radius: 4px;
+    box-shadow: 0 4px 15px rgba(124, 58, 237, 0.2);
+}
+
+.chat-bubble.model {
+    background: #f1f5f9;
+    border: 1px solid #e2e8f0;
+    color: #1e293b;
+    border-bottom-left-radius: 4px;
 }
 
 .chat-bubble p {
     margin: 0;
+    white-space: pre-wrap;
 }
 
-.chat-bubble.user {
-    background: linear-gradient(135deg, #6366f1, #818cf8);
-    color: white;
-    border-bottom-right-radius: 4px;
-}
-
-.chat-bubble.model {
-    background: white;
-    color: #1e293b;
-    border-bottom-left-radius: 4px;
-    border: 1px solid #e2e8f0;
-}
-
-/* Citations / Sources */
-.chat-sources {
-    margin-top: 6px;
+/* Loading Dots */
+.loading-bubble {
+    padding: 15px 20px;
     display: flex;
-    flex-wrap: wrap;
-    gap: 6px;
+    gap: 5px;
     align-items: center;
 }
 
-.source-label {
-    font-size: 11px;
-    color: #94a3b8;
-    font-weight: 600;
-    text-transform: uppercase;
-}
-
-.source-pill {
-    background: #e0e7ff;
-    color: #4338ca;
-    font-size: 11px;
-    padding: 4px 8px;
-    border-radius: 12px;
-    font-weight: 500;
-    cursor: pointer;
-    transition: all 0.2s;
-    border: 1px solid #c7d2fe;
-}
-
-.source-pill:hover {
-    background: #c7d2fe;
-    transform: translateY(-1px);
-}
-
-/* Input Area */
-.project-brain-input-area {
-    padding: 15px;
-    background: white;
-    border-top: 1px solid #e2e8f0;
-    display: flex;
-    gap: 10px;
-}
-
-.project-brain-input-area input {
-    flex: 1;
-    padding: 12px 16px;
-    border: 1px solid #cbd5e1;
-    border-radius: 20px;
-    outline: none;
-    font-size: 14px;
-    transition: border-color 0.2s, box-shadow 0.2s;
-}
-
-.project-brain-input-area input:focus {
-    border-color: #6366f1;
-    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
-}
-
-.project-brain-input-area button {
-    background: #6366f1;
-    color: white;
-    border: none;
-    border-radius: 20px;
-    padding: 0 20px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: background 0.2s;
-}
-
-.project-brain-input-area button:hover:not(:disabled) {
-    background: #4f46e5;
-}
-
-.project-brain-input-area button:disabled {
-    background: #94a3b8;
-    cursor: not-allowed;
-}
-
-/* Loading Animation */
-.loading-bubble {
-    display: flex;
-    gap: 4px;
-    padding: 16px 20px;
-}
-
 .dot {
-    width: 6px;
-    height: 6px;
-    background: #94a3b8;
+    width: 8px;
+    height: 8px;
+    background-color: var(--accent-primary);
     border-radius: 50%;
     animation: bounce 1.4s infinite ease-in-out both;
 }
@@ -231,4 +164,87 @@
 @keyframes bounce {
     0%, 80%, 100% { transform: scale(0); }
     40% { transform: scale(1); }
+}
+
+/* Citations */
+.chat-sources {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-top: 0.5rem;
+    align-items: center;
+}
+
+.source-label {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    font-weight: 600;
+}
+
+.source-pill {
+    font-size: 0.75rem;
+    background: rgba(6, 182, 212, 0.1);
+    color: var(--accent-secondary);
+    padding: 0.25rem 0.6rem;
+    border-radius: 12px;
+    border: 1px solid rgba(6, 182, 212, 0.2);
+}
+
+/* Input Area */
+.project-brain-input-area {
+    padding: 1rem 1.5rem;
+    background: #ffffff;
+    border-top: 1px solid #e2e8f0;
+    display: flex;
+    gap: 0.75rem;
+}
+
+.project-brain-input-area input {
+    flex: 1;
+    padding: 0.8rem 1.25rem;
+    border-radius: 20px;
+    border: 1px solid #cbd5e1;
+    background: #ffffff;
+    font-size: 0.95rem;
+    outline: none;
+    transition: all 0.2s;
+    color: #1e293b;
+}
+
+.project-brain-input-area input::placeholder {
+    color: #94a3b8;
+}
+
+.project-brain-input-area input:focus {
+    border-color: #a855f7;
+    box-shadow: 0 0 0 2px rgba(168, 85, 247, 0.2);
+}
+
+.project-brain-input-area button {
+    background: #e2e8f0;
+    color: #475569;
+    border: none;
+    border-radius: 20px;
+    padding: 0 1.5rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    box-shadow: none;
+}
+
+.project-brain-input-area button:not(:disabled) {
+    background: #3b82f6; /* Bright Blue */
+    color: white;
+}
+
+.project-brain-input-area button:hover:not(:disabled) {
+    background: #2563eb; /* Darker Blue on hover */
+    color: white;
+}
+
+.project-brain-input-area button:disabled {
+    background: #e2e8f0;
+    color: #94a3b8;
+    cursor: not-allowed;
+    box-shadow: none;
 }

@@ -1,8 +1,10 @@
 import React, { useEffect, useState, useContext } from 'react';
 import { SocketContext } from '../context/SocketContext';
+import { AuthContext } from '../context/AuthContext';
 
 const AiToast = () => {
     const socket = useContext(SocketContext);
+    const { user } = useContext(AuthContext);
     const [toast, setToast] = useState(null);
 
     useEffect(() => {
@@ -10,6 +12,7 @@ const AiToast = () => {
 
         // Listen for the specific AI Agent event
         const handleAiAlert = (data) => {
+
             console.log("🤖 AI Advisor Alert Received:", data);
             setToast(data);
             
@@ -26,7 +29,7 @@ const AiToast = () => {
 
     return (
         <div className="glass-panel" style={{
-            position: 'fixed', bottom: '20px', right: '20px', zIndex: 10000,
+            position: 'fixed', bottom: '110px', right: '30px', zIndex: 10000,
             width: '350px', padding: '1.5rem', borderLeft: '4px solid var(--accent-primary)',
             boxShadow: '0 10px 30px rgba(0,0,0,0.5)',
             animation: 'slideIn 0.3s ease-out'

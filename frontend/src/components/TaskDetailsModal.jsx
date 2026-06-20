@@ -2,6 +2,16 @@ import React, { useState, useEffect, useContext } from 'react';
 import { AuthContext } from '../context/AuthContext';
 import api from '../services/api';
 import { SocketContext } from '../context/SocketContext';
+import ConfirmModal from './ConfirmModal';
+
+const isUrgentTask = (targetDate, status) => {
+  if (!targetDate || status === 'done') return false;
+  const target = new Date(targetDate);
+  const today = new Date();
+  target.setHours(0,0,0,0);
+  today.setHours(0,0,0,0);
+  return target <= today;
+};
 
 const TaskDetailsModal = ({ projectId, taskId, onClose, userRole, members }) => {
   const { user } = useContext(AuthContext);
@@ -13,6 +23,9 @@ const TaskDetailsModal = ({ projectId, taskId, onClose, userRole, members }) => 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [aiSuggestions, setAiSuggestions] = useState([]);
   const [selectedAiSuggestions, setSelectedAiSuggestions] = useState(new Set());
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [isEditingDesc, setIsEditingDesc] = useState(false);
+  const [editDescValue, setEditDescValue] = useState('');
 
   const formatMemberName = (member) => {
     if (!member || !member.user) return 'Unassigned';
@@ -133,11 +146,11 @@ const TaskDetailsModal = ({ projectId, taskId, onClose, userRole, members }) => 
   };
 
   const handleDeleteTask = async () => {
-    if (!window.confirm("Are you sure you want to completely delete this task? This cannot be undone.")) return;
     if (isSubmitting) return;
     setIsSubmitting(true);
     try {
       await api.delete(`/tasks/${projectId}/t/${taskId}`);
+      setShowDeleteConfirm(false);
       onClose(); // Close modal, the websocket will remove it from the board
     } catch (err) {
       alert(err.response?.data?.message || 'Error deleting task');
@@ -152,7 +165,6 @@ const TaskDetailsModal = ({ projectId, taskId, onClose, userRole, members }) => 
     try {
       await api.post(`/projects/${projectId}/t/${taskId}/subtasks`, { title: newSubtask });
       setNewSubtask('');
-      // fetchTaskDetails() removed because socket handles it
     } catch (err) {
       alert(err.response?.data?.message || 'Error adding subtask');
     } finally {
@@ -163,7 +175,6 @@ const TaskDetailsModal = ({ projectId, taskId, onClose, userRole, members }) => 
   const handleToggleSubtask = async (subtaskId, currentStatus) => {
     try {
       await api.patch(`/projects/${projectId}/t/${taskId}/subtasks/${subtaskId}/status`, { isCompleted: !currentStatus });
-      // fetchTaskDetails() removed because socket handles it
     } catch (err) {
       alert(err.response?.data?.message || 'Error updating subtask');
     }
@@ -173,7 +184,6 @@ const TaskDetailsModal = ({ projectId, taskId, onClose, userRole, members }) => 
     if (!window.confirm("Delete this subtask?")) return;
     try {
       await api.delete(`/projects/${projectId}/t/${taskId}/subtasks/${subtaskId}`);
-      // fetchTaskDetails() removed because socket handles it
     } catch (err) {
       alert(err.response?.data?.message || 'Error deleting subtask');
     }
@@ -188,18 +198,15 @@ const TaskDetailsModal = ({ projectId, taskId, onClose, userRole, members }) => 
 
     try {
       setUploadingFile(true);
-      // We must explicitly override Content-Type so Axios lets the browser set the boundary for multipart/form-data
       await api.post(`/tasks/${projectId}/t/${taskId}/attachments`, formData, {
         headers: {
           'Content-Type': 'multipart/form-data'
         }
       });
-      // fetchTaskDetails() removed because socket handles it
     } catch (err) {
       alert(err.response?.data?.message || 'Error uploading file');
     } finally {
       setUploadingFile(false);
-      // Reset input
       e.target.value = null;
     }
   };
@@ -208,7 +215,6 @@ const TaskDetailsModal = ({ projectId, taskId, onClose, userRole, members }) => 
     if (!window.confirm("Delete this file? This cannot be undone.")) return;
     try {
       await api.delete(`/tasks/${projectId}/t/${taskId}/attachments/${attachmentId}`);
-      // fetchTaskDetails() removed because socket handles it
     } catch (err) {
       alert(err.response?.data?.message || 'Error deleting file');
     }
@@ -225,13 +231,23 @@ const TaskDetailsModal = ({ projectId, taskId, onClose, userRole, members }) => 
     }
   };
 
+  const handleSaveDescription = async () => {
+    try {
+      await api.patch(`/tasks/${projectId}/t/${taskId}`, { description: editDescValue });
+      setTask(prev => ({ ...prev, description: editDescValue }));
+      setIsEditingDesc(false);
+    } catch (err) {
+      alert('Error updating description');
+    }
+  };
+
   const handleGenerateAIBreakdown = async (retry = false) => {
     try {
       setIsGenerating(true);
       const payload = retry ? { previousSuggestions: aiSuggestions } : {};
       const res = await api.post(`/tasks/${projectId}/t/${taskId}/ai-breakdown/generate`, payload);
       setAiSuggestions(res.data.subtasks);
-      setSelectedAiSuggestions(new Set(res.data.subtasks)); // Select all by default
+      setSelectedAiSuggestions(new Set(res.data.subtasks));
     } catch (err) {
       alert(err.response?.data?.message || 'Error generating AI subtasks');
     } finally {
@@ -263,83 +279,141 @@ const TaskDetailsModal = ({ projectId, taskId, onClose, userRole, members }) => 
   };
 
   if (loading) return (
-    <div style={{
-      position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
-      background: 'rgba(15, 23, 42, 0.8)', backdropFilter: 'blur(4px)',
-      display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000
-    }}>
+    <div className="modal-overlay">
       <div className="spinner-container"><div className="spinner"></div></div>
     </div>
   );
 
   return (
-    <div style={{
-      position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
-      background: 'rgba(15, 23, 42, 0.8)', backdropFilter: 'blur(4px)',
-      display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000
-    }}>
-      <div className="glass-panel" style={{ width: '90%', maxWidth: '600px', padding: '2rem', position: 'relative', maxHeight: '90vh', overflowY: 'auto' }}>
-        <button 
-          onClick={onClose} 
-          style={{ position: 'absolute', top: '1rem', right: '1.5rem', background: 'none', border: 'none', color: 'var(--text-secondary)', fontSize: '1.5rem', cursor: 'pointer' }}
-        >
-          &times;
-        </button>
-
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.5rem', paddingRight: '2rem', marginTop: '1rem' }}>
-          <div>
-            <h2 style={{ margin: 0, marginBottom: '0.5rem', color: 'var(--text-primary)' }}>{task.title}</h2>
-            <p style={{ color: 'var(--text-secondary)', margin: 0 }}>{task.description}</p>
-          </div>
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal-content glass-panel" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '650px', padding: '2.5rem', maxHeight: '90vh', overflowY: 'auto', position: 'relative' }}>
+        
+        {/* TOP HEADER: Title and Action Buttons */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '1rem', marginBottom: '1rem' }}>
+          <h2 className="text-gradient" style={{ margin: 0, fontSize: '1.75rem', fontWeight: '800', flex: 1, wordBreak: 'break-word' }}>
+            {task.title}
+          </h2>
           
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '0.5rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexShrink: 0 }}>
             {(userRole === 'admin' || userRole === 'project_admin') && (
               <button 
-                onClick={handleDeleteTask}
-                className="btn"
-                disabled={isSubmitting}
-                style={{ background: 'rgba(239, 68, 68, 0.1)', color: 'var(--error)', border: '1px solid rgba(239, 68, 68, 0.3)', padding: '0.2rem 0.6rem', fontSize: '0.75rem', borderRadius: '4px', marginBottom: '0.5rem' }}
+                onClick={() => setShowDeleteConfirm(true)}
+                style={{ background: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.3)', color: '#fca5a5', fontSize: '0.8rem', cursor: 'pointer', padding: '0.4rem 0.8rem', borderRadius: '6px', transition: 'all 0.2s', fontWeight: '600' }}
+                onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(239, 68, 68, 0.2)'; }} 
+                onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(239, 68, 68, 0.1)'; }}
               >
-                {isSubmitting ? 'Deleting...' : 'Delete Task'}
+                Delete Task
               </button>
             )}
-            
-            {task.targetDate && (
-              <span style={{ 
-                fontSize: '0.8rem', 
-                color: new Date(task.targetDate) < new Date() && task.status !== 'done' ? '#fca5a5' : 'var(--text-secondary)',
-                background: new Date(task.targetDate) < new Date() && task.status !== 'done' ? 'rgba(239, 68, 68, 0.2)' : 'rgba(255, 255, 255, 0.05)',
-                padding: '0.2rem 0.6rem', borderRadius: '4px',
-                border: new Date(task.targetDate) < new Date() && task.status !== 'done' ? '1px solid rgba(239, 68, 68, 0.5)' : 'none'
-              }}>
-                🎯 Due: {new Date(task.targetDate).toLocaleDateString()}
-              </span>
-            )}
+            <button 
+              onClick={onClose} 
+              title="Close"
+              style={{ background: 'rgba(255, 255, 255, 0.05)', border: '1px solid rgba(255, 255, 255, 0.1)', color: 'var(--text-secondary)', fontSize: '1.2rem', cursor: 'pointer', transition: 'all 0.2s', borderRadius: '6px', padding: '0.2rem 0.6rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+              onMouseEnter={(e) => { e.currentTarget.style.color='white'; e.currentTarget.style.background='rgba(255, 255, 255, 0.1)' }} 
+              onMouseLeave={(e) => { e.currentTarget.style.color='var(--text-secondary)'; e.currentTarget.style.background='rgba(255, 255, 255, 0.05)' }}
+            >
+              &times;
+            </button>
+          </div>
+        </div>
+
+        {/* DESCRIPTION */}
+        <div style={{ marginBottom: '1.5rem' }}>
+          {isEditingDesc ? (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+              <textarea 
+                className="input-premium"
+                style={{ minHeight: '100px', resize: 'vertical' }}
+                value={editDescValue}
+                onChange={e => setEditDescValue(e.target.value)}
+              />
+              <div style={{ display: 'flex', gap: '0.5rem' }}>
+                <button className="btn-premium" onClick={handleSaveDescription}>Save</button>
+                <button style={{ background: 'transparent', border: '1px solid rgba(255,255,255,0.2)', padding: '0.5rem 1rem', borderRadius: '8px', color: 'white', cursor: 'pointer' }} onClick={() => setIsEditingDesc(false)}>Cancel</button>
+              </div>
+            </div>
+          ) : (
+            <div 
+              style={{ position: 'relative', color: 'var(--text-secondary)', fontSize: '0.95rem', lineHeight: '1.5', padding: '0.5rem', background: 'rgba(255,255,255,0.02)', borderRadius: '6px', border: '1px solid rgba(255,255,255,0.05)', paddingRight: '4rem' }}
+            >
+              {task.description || <span style={{ fontStyle: 'italic', opacity: 0.5 }}>No description provided.</span>}
+              
+              {(userRole === 'admin' || userRole === 'project_admin') && (
+                <button 
+                  style={{ position: 'absolute', top: '0.5rem', right: '0.5rem', background: 'rgba(139, 92, 246, 0.2)', border: '1px solid rgba(139, 92, 246, 0.4)', color: '#c4b5fd', borderRadius: '4px', padding: '0.2rem 0.6rem', cursor: 'pointer', fontSize: '0.75rem', fontWeight: 'bold', transition: 'all 0.2s' }}
+                  onMouseEnter={e => { e.currentTarget.style.background = 'rgba(139, 92, 246, 0.4)'; e.currentTarget.style.color = 'white'; }}
+                  onMouseLeave={e => { e.currentTarget.style.background = 'rgba(139, 92, 246, 0.2)'; e.currentTarget.style.color = '#c4b5fd'; }}
+                  onClick={() => {
+                    setEditDescValue(task.description || '');
+                    setIsEditingDesc(true);
+                  }}
+                >
+                  Edit
+                </button>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* META TAGS (Status, Due Date, Assignee) */}
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.75rem', alignItems: 'center', marginBottom: '1.5rem', background: 'rgba(0, 0, 0, 0.2)', padding: '1rem', borderRadius: '8px' }}>
+          
+          {/* Status Badge */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Status</span>
             <span style={{ 
               background: 'rgba(59, 130, 246, 0.2)', color: '#60a5fa', 
-              padding: '0.2rem 0.6rem', borderRadius: '4px', fontSize: '0.8rem' 
+              padding: '0.2rem 0.6rem', borderRadius: '4px', fontSize: '0.8rem', fontWeight: 'bold',
+              border: '1px solid rgba(59, 130, 246, 0.3)'
             }}>
               {task.status.replace('_', ' ').toUpperCase()}
             </span>
+          </div>
 
+          {/* Due Date Badge */}
+          {task.targetDate && (() => {
+            const urgent = isUrgentTask(task.targetDate, task.status);
+            return (
+              <>
+                <div style={{ width: '1px', height: '20px', background: 'rgba(255,255,255,0.1)' }}></div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Target Date</span>
+                  <span style={{ 
+                    fontSize: '0.8rem', fontWeight: 'bold',
+                    color: urgent ? '#fca5a5' : 'var(--text-primary)',
+                    background: urgent ? 'rgba(239, 68, 68, 0.2)' : 'rgba(255, 255, 255, 0.1)',
+                    padding: '0.2rem 0.6rem', borderRadius: '4px',
+                    border: urgent ? '1px solid rgba(239, 68, 68, 0.5)' : '1px solid rgba(255, 255, 255, 0.2)'
+                  }}>
+                    {new Date(task.targetDate).toLocaleDateString()}
+                  </span>
+                </div>
+              </>
+            );
+          })()}
+
+          {/* Assignee Selector */}
+          <div style={{ width: '1px', height: '20px', background: 'rgba(255,255,255,0.1)' }}></div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Assignee</span>
             {(userRole === 'admin' || userRole === 'project_admin') ? (
               <select 
-                className="form-input" 
-                style={{ padding: '0.2rem 0.5rem', fontSize: '0.8rem', background: 'var(--bg-primary)', width: 'auto' }}
+                style={{ padding: '0.2rem 0.4rem', fontSize: '0.85rem', background: 'rgba(255,255,255,0.05)', color: 'var(--text-primary)', border: '1px solid rgba(255,255,255,0.1)', outline: 'none', cursor: 'pointer', fontWeight: 'bold', borderRadius: '4px' }}
                 value={task.assignee?.id || ''}
                 onChange={(e) => handleAssigneeChange(e.target.value)}
               >
-                <option value="">Unassigned</option>
+                <option value="" style={{ background: 'var(--bg-dark)' }}>Unassigned</option>
                 {sortedMembers.map(m => (
-                  <option key={m.user?.id} value={m.user?.id}>{formatMemberName(m)}</option>
+                  <option key={m.user?.id} value={m.user?.id} style={{ background: 'var(--bg-dark)' }}>{formatMemberName(m)}</option>
                 ))}
               </select>
             ) : (
-              <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-                Assigned to: {task.assignee ? formatMemberName(members?.find(m => m.user?.id === task.assignee.id)) : 'Unassigned'}
+              <span style={{ fontSize: '0.85rem', color: 'var(--text-primary)', fontWeight: 'bold', background: 'rgba(255,255,255,0.05)', padding: '0.2rem 0.6rem', borderRadius: '4px', border: '1px solid rgba(255,255,255,0.1)' }}>
+                {task.assignee ? formatMemberName(members?.find(m => m.user?.id === task.assignee.id)) : 'Unassigned'}
               </span>
             )}
           </div>
+
         </div>
 
         <hr style={{ border: 'none', borderTop: '1px solid var(--border-light)', marginBottom: '1.5rem' }} />
@@ -367,33 +441,31 @@ const TaskDetailsModal = ({ projectId, taskId, onClose, userRole, members }) => 
         </div>
 
         {(userRole === 'admin' || userRole === 'project_admin') && (
-          <form onSubmit={handleAddSubtask} style={{ display: 'flex', gap: '0.5rem', marginBottom: '1rem' }}>
+          <form onSubmit={handleAddSubtask} style={{ display: 'flex', gap: '0.75rem', marginBottom: '1.5rem' }}>
             <input 
               type="text" 
-              className="form-input" 
+              className="input-premium" 
               placeholder="Add a new subtask..." 
               value={newSubtask}
               onChange={(e) => setNewSubtask(e.target.value)}
               style={{ flex: 1 }}
             />
-            <button type="submit" className="btn btn-primary" style={{ padding: '0.5rem 1rem' }} disabled={isSubmitting}>
+            <button type="submit" className="btn-premium" style={{ padding: '0.5rem 1.5rem' }} disabled={isSubmitting}>
               {isSubmitting ? '...' : 'Add'}
             </button>
             
-            {/* The AI Breakdown Button */}
             <button 
               type="button" 
               onClick={() => handleGenerateAIBreakdown(false)} 
               disabled={isGenerating} 
-              className="btn" 
-              style={{ background: 'var(--accent-primary)', color: 'white', padding: '0.5rem 1rem' }}
+              className="btn-premium" 
+              style={{ background: 'linear-gradient(135deg, #f59e0b, #d97706)' }}
             >
               {isGenerating && aiSuggestions.length === 0 ? 'Thinking...' : '✨ AI Breakdown'}
             </button>
           </form>
         )}
 
-        {/* AI Preview Panel */}
         {aiSuggestions.length > 0 && (
           <div className="glass-panel" style={{ padding: '1.5rem', marginBottom: '2rem', border: '1px solid var(--accent-primary)', background: 'rgba(139, 92, 246, 0.05)' }}>
             <h4 style={{ margin: 0, marginBottom: '1rem', color: 'var(--accent-primary)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
@@ -482,6 +554,17 @@ const TaskDetailsModal = ({ projectId, taskId, onClose, userRole, members }) => 
             </div>
           ))}
         </div>
+
+        <ConfirmModal 
+          isOpen={showDeleteConfirm}
+          title="Delete Task"
+          message="Are you sure you want to delete this task? This action cannot be undone and will delete all associated subtasks and attachments."
+          confirmText="Delete Task"
+          cancelText="Cancel"
+          onConfirm={handleDeleteTask}
+          onCancel={() => setShowDeleteConfirm(false)}
+          isDestructive={true}
+        />
 
       </div>
     </div>

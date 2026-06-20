@@ -2,10 +2,11 @@ import React, { useEffect, useState, useContext } from 'react';
 import { Link } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
 import api from '../services/api';
-import Navbar from '../components/Navbar';
+import TopNav from '../components/TopNav';
+import '../styles/Dashboard.css';
 
 const Dashboard = () => {
-  const { user, logout } = useContext(AuthContext);
+  const { user } = useContext(AuthContext);
   const [projects, setProjects] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -48,55 +49,69 @@ const Dashboard = () => {
   };
 
   return (
-    <div>
-      <Navbar />
-      <main className="container" style={{ marginTop: '3rem' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
-          <h2>Your Projects</h2>
-          <button className="btn btn-primary" onClick={() => setShowForm(!showForm)}>
-            {showForm ? 'Cancel' : '+ New Project'}
+    <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
+      <TopNav />
+      
+      <main style={{ flex: 1, padding: '3rem 2rem', maxWidth: '1400px', margin: '0 auto', width: '100%' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '3rem' }}>
+          <h2 style={{ margin: 0, fontSize: '2rem', fontWeight: '800' }}>Workspaces</h2>
+          <button className="btn-premium" onClick={() => setShowForm(true)}>
+            <span style={{ fontSize: '1.2rem' }}>+</span> New Workspace
           </button>
         </div>
 
         {showForm && (
-          <div className="glass-panel" style={{ padding: '2rem', marginBottom: '2rem' }}>
-            <form onSubmit={handleCreateProject}>
-              <div className="form-group">
-                <label className="form-label">Project Name</label>
-                <input type="text" className="form-input" value={name} onChange={(e) => setName(e.target.value)} required />
-              </div>
-              <div className="form-group">
-                <label className="form-label">Description</label>
-                <textarea className="form-input" value={description} onChange={(e) => setDescription(e.target.value)} rows="3" required></textarea>
-              </div>
-              <button type="submit" className="btn btn-primary" disabled={isSubmitting}>
-                {isSubmitting ? 'Creating...' : 'Create'}
-              </button>
-            </form>
+          <div className="modal-overlay" onClick={() => setShowForm(false)}>
+            <div className="modal-content glass-panel modal-content-inner" onClick={(e) => e.stopPropagation()}>
+              <h3 className="text-gradient modal-title">Create New Workspace</h3>
+              <form onSubmit={handleCreateProject}>
+                <div className="form-group">
+                  <label className="form-label">Workspace Name</label>
+                  <input type="text" className="input-premium" value={name} onChange={(e) => setName(e.target.value)} required placeholder="e.g., Apollo Launch" />
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Description</label>
+                  <textarea className="input-premium" value={description} onChange={(e) => setDescription(e.target.value)} rows="3" required placeholder="What is this workspace about?"></textarea>
+                </div>
+                <div style={{ display: 'flex', gap: '1rem', marginTop: '2rem' }}>
+                  <button type="button" className="btn btn-secondary" onClick={() => setShowForm(false)} style={{ flex: 1 }}>
+                    Cancel
+                  </button>
+                  <button type="submit" className="btn-premium" disabled={isSubmitting} style={{ flex: 1 }}>
+                    {isSubmitting ? 'Creating...' : 'Create'}
+                  </button>
+                </div>
+              </form>
+            </div>
           </div>
         )}
 
         {loading ? (
           <div className="spinner-container"><div className="spinner"></div></div>
         ) : projects.length === 0 ? (
-          <div className="glass-panel" style={{ padding: '4rem', textAlign: 'center', color: 'var(--text-secondary)' }}>
-            <p>You don't have any projects yet. Create one to get started!</p>
+          <div className="glass-panel empty-state-panel">
+            <div className="empty-state-emoji">🌌</div>
+            <h3 className="empty-state-title">Your workspace is empty</h3>
+            <p className="empty-state-text">Create your first project to start managing tasks with AI.</p>
+            <button className="btn-premium" onClick={() => setShowForm(true)}>Create Workspace</button>
           </div>
         ) : (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '1.5rem' }}>
+          <div className="projects-grid">
             {projects.map((project) => (
-              <div key={project.id} className="glass-panel" style={{ display: 'flex', flexDirection: 'column', padding: '1.5rem', transition: 'transform 0.2s', cursor: 'pointer' }}>
-                <h3 style={{ marginBottom: '0.5rem', color: 'var(--accent-primary)' }}>{project.projectName}</h3>
-                <p style={{ flex: 1, color: 'var(--text-secondary)', marginBottom: '1.5rem', fontSize: '0.9rem' }}>
-                  {project.description}
-                </p>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-                  <span>{project.memberCount} Member(s)</span>
-                  <Link to={`/project/${project.id}`} className="btn btn-secondary" style={{ padding: '0.4rem 0.8rem', fontSize: '0.8rem', textDecoration: 'none' }}>
-                    View Details
-                  </Link>
+              <Link to={`/project/${project.id}`} key={project.id} className="project-card">
+                <div className="glass-panel">
+                  <h3 className="project-name">{project.projectName}</h3>
+                  <p className="project-description">
+                    {project.description}
+                  </p>
+                  <div className="project-footer">
+                    <span className="project-role">{project.memberCount} Member{project.memberCount !== 1 ? 's' : ''}</span>
+                    <span className="enter-workspace-link">
+                      Enter Workspace <span>→</span>
+                    </span>
+                  </div>
                 </div>
-              </div>
+              </Link>
             ))}
           </div>
         )}

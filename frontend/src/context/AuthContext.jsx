@@ -31,6 +31,18 @@ export const AuthProvider = ({ children }) => {
     }
   }, [refreshToken]);
 
+  // Sync session across multiple tabs
+  useEffect(() => {
+    const syncAcrossTabs = (e) => {
+      if (e.key === 'token') {
+        // If the token changes in another tab, instantly reload this tab to sync the session!
+        window.location.reload();
+      }
+    };
+    window.addEventListener('storage', syncAcrossTabs);
+    return () => window.removeEventListener('storage', syncAcrossTabs);
+  }, []);
+
 
   const fetchCurrentUser = async () => {
     try {

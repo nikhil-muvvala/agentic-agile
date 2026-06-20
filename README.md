@@ -1,6 +1,6 @@
 #  Agentic AI Project Management Dashboard
 
-** Live Demo:** [https://agentic-agile.vercel.app](https://agentic-agile.vercel.app)
+**Live Demo:** [https://agentic-agile.vercel.app](https://agentic-agile.vercel.app)
 
 A next-generation, full-stack Kanban project management platform powered by **Real-Time WebSockets** and **Google Gemini Agentic AI**. Built to help engineering teams collaborate faster, avoid duplicate work, and make smarter management decisions using AI.
 
@@ -22,6 +22,7 @@ This platform is the first truly **Agentic Project Management Platform**. It fea
 3.  ** The Multi-Step Planning Agent (Project Health Advisor):** A background cron job that wakes up every morning at 9:00 AM, surveys the health of every project, evaluates the subtask progress of all at-risk tasks, and sends intelligent reassignment recommendations directly to the Project Admin's notification bell. 
 4.  ** AI Task Breakdown:** Instead of spending an hour writing subtasks, a Product Manager can just type "Build Login Page", and the AI instantly generates the database schema, frontend UI, and API subtasks required to build it.
 5.  ** AI Standup Generator:** Automatically reads all activity in your project from the last 24 hours and generates a perfect "Daily Standup" summary of what the team accomplished and what is blocking progress.
+6.  **The Project Brain (Context-Aware Chatbot):** A conversational AI that perfectly understands both the present state and past history of your project. Ask it "Who is working on the Stripe API?" or "Why was the database task blocked yesterday?" and it will instantly answer using a hybrid "Whiteboard + Diary" architecture. The **frontend UI** acts as its short-term memory (remembering the flow of your current conversation), while the **backend `pgvector` database** acts as its permanent long-term memory (recalling historical project events and decisions).
 
 ---
 

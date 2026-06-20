@@ -3,30 +3,40 @@ import api from '../services/api';
 import TaskDetailsModal from './TaskDetailsModal';
 import { SocketContext } from '../context/SocketContext';
 import { AuthContext } from '../context/AuthContext';
+import toast from 'react-hot-toast';
 
 // ---------------------------------------------------------
 // Extracted & Memoized Components
 // ---------------------------------------------------------
+const isUrgentTask = (targetDate, status) => {
+  if (!targetDate || status === 'done') return false;
+  const target = new Date(targetDate);
+  const today = new Date();
+  target.setHours(0,0,0,0);
+  today.setHours(0,0,0,0);
+  return target <= today;
+};
+
 const TaskCard = memo(({ task, onTaskClick }) => {
   const handleDragStart = (e) => {
     e.dataTransfer.setData('taskId', task.id);
+    e.dataTransfer.setData('taskStatus', task.status);
+    e.dataTransfer.setData('taskAssigneeId', task.assignee?.id || '');
   };
 
   return (
     <div 
       draggable
       onDragStart={handleDragStart}
-      className="glass-panel" 
+      className="glass-panel task-card-hover" 
       style={{ 
-        padding: '1rem', 
-        background: 'var(--bg-secondary)', 
-        transition: 'transform 0.2s', 
+        padding: '1.25rem', 
+        background: 'rgba(255, 255, 255, 0.03)', 
+        border: '1px solid rgba(255, 255, 255, 0.08)',
+        transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)', 
         cursor: 'grab',
         position: 'relative' 
       }}
-      onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-2px)'}
-      onMouseLeave={(e) => e.currentTarget.style.transform = 'translateY(0)'}
-      onDragEnd={(e) => e.currentTarget.style.transform = 'translateY(0)'}
     >
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.5rem' }}>
         <h5 style={{ margin: 0, color: 'var(--accent-primary)' }}>{task.title}</h5>
@@ -44,25 +54,27 @@ const TaskCard = memo(({ task, onTaskClick }) => {
         {task.description?.length > 50 ? task.description.substring(0, 50) + '...' : task.description}
       </p>
       
-      {task.targetDate && (
-        <div style={{ marginBottom: '1rem' }}>
-          <span style={{ 
-            fontSize: '0.75rem', 
-            color: new Date(task.targetDate) < new Date() && task.status !== 'done' ? '#fca5a5' : 'var(--text-secondary)',
-            background: new Date(task.targetDate) < new Date() && task.status !== 'done' ? 'rgba(239, 68, 68, 0.2)' : 'rgba(255, 255, 255, 0.05)',
-            padding: '0.2rem 0.5rem', borderRadius: '4px',
-            border: new Date(task.targetDate) < new Date() && task.status !== 'done' ? '1px solid rgba(239, 68, 68, 0.5)' : 'none',
-            display: 'inline-flex', alignItems: 'center', gap: '4px'
-          }}>
-            🎯 Due: {new Date(task.targetDate).toLocaleDateString()}
-          </span>
-        </div>
-      )}
-      
-      <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', marginTop: 'auto', gap: '0.5rem' }}>
+        {task.targetDate && (() => {
+          const urgent = isUrgentTask(task.targetDate, task.status);
+          return (
+            <span style={{ 
+              fontSize: '0.75rem', 
+              color: urgent ? '#fca5a5' : 'var(--text-primary)',
+              background: urgent ? 'rgba(239, 68, 68, 0.2)' : 'rgba(255, 255, 255, 0.1)',
+              padding: '0.2rem 0.5rem', borderRadius: '4px',
+              border: urgent ? '1px solid rgba(239, 68, 68, 0.5)' : '1px solid rgba(255, 255, 255, 0.2)',
+              display: 'inline-flex', alignItems: 'center', gap: '4px', fontWeight: '500',
+              whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis'
+            }}>
+              🎯 Target Date: {new Date(task.targetDate).toLocaleDateString()}
+            </span>
+          );
+        })()}
+        
         <button 
           className="btn btn-secondary" 
-          style={{ padding: '0.3rem 0.6rem', fontSize: '0.75rem' }}
+          style={{ padding: '0.3rem 0.6rem', fontSize: '0.75rem', flexShrink: 0 }}
           onClick={() => onTaskClick(task.id)}
         >
           View Details
@@ -80,17 +92,33 @@ const KanbanColumn = memo(({ title, items, statusValue, onDrop, onTaskClick }) =
   const handleDrop = (e) => {
     e.preventDefault();
     const taskId = e.dataTransfer.getData('taskId');
-    if (taskId) onDrop(parseInt(taskId, 10), statusValue);
+    const taskStatus = e.dataTransfer.getData('taskStatus');
+    const taskAssigneeId = e.dataTransfer.getData('taskAssigneeId');
+    if (taskId) onDrop(parseInt(taskId, 10), statusValue, taskStatus, taskAssigneeId);
   };
 
   return (
     <div 
       className="glass-panel" 
-      style={{ flex: 1, padding: '1rem', background: 'rgba(30, 41, 59, 0.4)', minHeight: '300px' }}
+      style={{ 
+        flex: 1, 
+        padding: '1.5rem', 
+        background: 'rgba(0, 0, 0, 0.2)', 
+        border: '1px solid rgba(255, 255, 255, 0.03)',
+        boxShadow: 'inset 0 0 20px rgba(0,0,0,0.2)',
+        minHeight: '400px',
+        display: 'flex',
+        flexDirection: 'column'
+      }}
       onDragOver={handleDragOver}
       onDrop={handleDrop}
     >
-      <h4 style={{ marginBottom: '1rem', textAlign: 'center', borderBottom: '1px solid var(--border-light)', paddingBottom: '0.5rem' }}>{title} ({items.length})</h4>
+      <h4 style={{ 
+        marginBottom: '1.5rem', textAlign: 'center', 
+        borderBottom: '1px solid rgba(255, 255, 255, 0.05)', 
+        paddingBottom: '1rem', color: 'var(--text-primary)',
+        fontWeight: '700', letterSpacing: '0.5px'
+      }}>{title} <span style={{ color: 'var(--text-muted)', fontWeight: '500' }}>({items.length})</span></h4>
       <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
         {items.map(task => (
           <TaskCard key={task.id} task={task} onTaskClick={onTaskClick} />
@@ -121,9 +149,13 @@ const ProjectTasks = ({ projectId, userRole }) => {
   const [members, setMembers] = useState([]);
   const [selectedTaskId, setSelectedTaskId] = useState(null);
 
-  const [isGeneratingStandup, setIsGeneratingStandup] = useState(false);
-  const [standupSummary, setStandupSummary] = useState(null);
+  // AI Standup state
   const [showStandupModal, setShowStandupModal] = useState(false);
+  const [standupSummary, setStandupSummary] = useState(null);
+  const [isGeneratingStandup, setIsGeneratingStandup] = useState(false);
+
+  // Custom Confirm Modal state
+  const [confirmMove, setConfirmMove] = useState(null);
 
   const socket = useContext(SocketContext);
 
@@ -208,7 +240,7 @@ const ProjectTasks = ({ projectId, userRole }) => {
       setTasks(response.data.tasks || []);
     } catch (err) {
       console.error(err);
-      alert(err.response?.data?.message || 'Error fetching tasks');
+      toast.error(err.response?.data?.message || 'Error fetching tasks');
     } finally {
       setLoading(false);
     }
@@ -232,14 +264,44 @@ const ProjectTasks = ({ projectId, userRole }) => {
       // Wait for socket to update list, or fetch manually as backup
       fetchTasks();
     } catch (err) {
-      alert(err.response?.data?.message || 'Error creating task');
+      toast.error(err.response?.data?.message || 'Error creating task');
     } finally {
       setIsSubmitting(false);
     }
   };
 
   // Optimistic UI for Drag and Drop
-  const handleDrop = useCallback(async (taskId, newStatus) => {
+  const handleDrop = useCallback(async (taskId, newStatus, currentStatus, taskAssigneeId) => {
+    
+    if (userRole !== 'admin' && userRole !== 'project_admin') {
+      // 1. Cannot drag someone else's task
+      if (taskAssigneeId && parseInt(taskAssigneeId) !== user.id) {
+         toast.error("Forbidden: You cannot move tasks assigned to other members.");
+         return;
+      }
+      
+      // 2. Linear Progression Rules
+      const strictOrder = ['todo', 'in_progress', 'done', 'blocked'];
+      const currentIndex = strictOrder.indexOf(currentStatus);
+      const targetIndex = strictOrder.indexOf(newStatus);
+
+      if (targetIndex < currentIndex) {
+         toast.error("Forbidden: Only Admins can move tasks backwards.");
+         return;
+      }
+
+      // 3. Prompt members before executing valid forward moves
+      if (targetIndex > currentIndex) {
+         setConfirmMove({ taskId, newStatus });
+         return; // Pause execution and wait for modal
+      }
+    }
+
+    executeDrop(taskId, newStatus);
+  }, [projectId, userRole, user.id]);
+
+  const executeDrop = async (taskId, newStatus) => {
+    setConfirmMove(null);
     // 1. Optimistic Update (Instant snap)
     setTasks(prevTasks => {
       return prevTasks.map(t => {
@@ -253,16 +315,14 @@ const ProjectTasks = ({ projectId, userRole }) => {
     // 2. Network Request
     try {
       await api.patch(`/tasks/${projectId}/t/${taskId}/status`, { status: newStatus });
-      // We don't fetchTasks() here anymore! The WebSocket or Optimistic UI handles it.
     } catch (err) {
-      alert(err.response?.data?.message || 'Error updating status');
-      // Revert on failure
+      toast.error(err.response?.data?.message || 'Error updating status');
       fetchTasks(); 
     }
-  }, [projectId]);
+  };
 
   const handlePredictDeadline = async () => {
-    if (!title) return alert("Please enter a task title first!");
+    if (!title) return toast.error("Please enter a task title first!");
     try {
       setIsPredictingDeadline(true);
       const res = await api.post(`/tasks/${projectId}/predict-deadline`, { title, description });
@@ -272,27 +332,29 @@ const ProjectTasks = ({ projectId, userRole }) => {
       const futureDate = new Date();
       futureDate.setDate(futureDate.getDate() + days);
       setTargetDate(futureDate.toISOString().split('T')[0]); // Format YYYY-MM-DD
+      toast.success(`AI predicted ${days} days for this task!`);
     } catch (err) {
-      alert(err.response?.data?.message || 'Error predicting deadline');
+      toast.error(err.response?.data?.message || 'Error predicting deadline');
     } finally {
       setIsPredictingDeadline(false);
     }
   };
 
   const handleSuggestAssignee = async () => {
-    if (!title) return alert("Please enter a task title first!");
+    if (!title) return toast.error("Please enter a task title first!");
     try {
       setIsSuggestingAssignee(true);
       const res = await api.post(`/tasks/${projectId}/suggest-assignee`, { title, description });
       if (res.data.assigneeId) {
         if (res.data.assigneeId === -1) {
-          alert("No related user found. Not enough project history to suggest an assignee!");
+          toast.error("No related user found. Not enough project history to suggest an assignee!");
         } else {
           setAssigneeId(res.data.assigneeId.toString());
+          toast.success("AI successfully suggested the best assignee!");
         }
       }
     } catch (err) {
-      alert('No related user found. Not enough data for the AI to make a suggestion.');
+      toast.error('No related user found. Not enough data for the AI to make a suggestion.');
     } finally {
       setIsSuggestingAssignee(false);
     }
@@ -305,7 +367,7 @@ const ProjectTasks = ({ projectId, userRole }) => {
       const res = await api.get(`/tasks/${projectId}/ai-standup`);
       setStandupSummary(res.data.summary);
     } catch (err) {
-      alert(err.response?.data?.message || 'Error generating Standup');
+      toast.error(err.response?.data?.message || 'Error generating Standup');
       setShowStandupModal(false);
     } finally {
       setIsGeneratingStandup(false);
@@ -339,67 +401,60 @@ const ProjectTasks = ({ projectId, userRole }) => {
 
   const todo = tasks.filter(t => t.status === 'todo');
   const inProgress = tasks.filter(t => t.status === 'in_progress');
+  const blocked = tasks.filter(t => t.status === 'blocked');
   const done = tasks.filter(t => t.status === 'done');
 
   return (
     <div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
-        <h3>Tasks Board</h3>
-        <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+        <h3 style={{ margin: 0, fontSize: '1.5rem' }}>Tasks Board</h3>
+        <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', flexWrap: 'wrap' }}>
+          
+          {/* AI Analyst Toggle Pill */}
           {(userRole === 'admin' || userRole === 'project_admin') && (
-            <div 
-              onClick={() => setIsAgentEnabled(!isAgentEnabled)}
-              title="When active, the AI Background Agent will automatically scan for duplicate tasks and suggest assignments."
-              style={{ 
-                display: 'flex', alignItems: 'center', gap: '0.8rem', cursor: 'pointer',
-                background: isAgentEnabled ? 'rgba(139, 92, 246, 0.15)' : 'rgba(30,41,59,0.5)', 
-                padding: '0.5rem 1rem', borderRadius: '30px', 
-                border: `1px solid ${isAgentEnabled ? 'rgba(139, 92, 246, 0.4)' : 'rgba(255,255,255,0.05)'}`, 
-                transition: 'all 0.3s ease' 
-              }}
-            >
-              <span style={{ 
-                fontSize: '1.2rem', 
-                filter: isAgentEnabled ? 'drop-shadow(0 0 5px rgba(139, 92, 246, 0.8))' : 'grayscale(100%)',
-                transition: 'filter 0.3s ease'
-              }}>🤖</span>
-              <span style={{ 
-                fontSize: '0.85rem', 
-                fontWeight: isAgentEnabled ? '600' : '400', 
-                color: isAgentEnabled ? 'var(--accent-primary)' : 'var(--text-muted)',
-                transition: 'all 0.3s ease'
-              }}>
-                AI Analyst
+            <div style={{ 
+              display: 'flex', alignItems: 'center', gap: '0.75rem', 
+              background: 'rgba(255, 255, 255, 0.03)', 
+              padding: '0.6rem 1.2rem', borderRadius: '30px', 
+              border: '1px solid rgba(139, 92, 246, 0.3)',
+              boxShadow: isAgentEnabled ? '0 0 10px rgba(139, 92, 246, 0.2)' : 'none',
+              cursor: 'pointer'
+            }} 
+            title="Enable Event-Driven AI to monitor task changes, find solutions for blockers, and recommend new assignments when developers finish tasks."
+            onClick={() => setIsAgentEnabled(!isAgentEnabled)}>
+              <span style={{ fontSize: '1.2rem' }}>🤖</span>
+              <span style={{ fontSize: '1rem', color: isAgentEnabled ? '#c4b5fd' : 'var(--text-secondary)', fontWeight: '600' }}>
+                AI Event Manager
               </span>
               
-              {/* Custom CSS Toggle Switch */}
+              {/* Pill Switch */}
               <div style={{ 
-                width: '36px', height: '20px', borderRadius: '10px', 
-                background: isAgentEnabled ? 'var(--accent-primary)' : 'rgba(255,255,255,0.1)', 
-                position: 'relative', transition: 'background 0.3s ease' 
+                width: '44px', height: '24px', borderRadius: '12px', 
+                background: isAgentEnabled ? 'linear-gradient(135deg, #8b5cf6, #6d28d9)' : 'rgba(255,255,255,0.1)',
+                position: 'relative', transition: 'all 0.3s ease'
               }}>
-                <div style={{ 
-                  position: 'absolute', top: '2px', 
-                  left: isAgentEnabled ? '18px' : '2px', 
-                  width: '16px', height: '16px', borderRadius: '50%', 
-                  background: 'white', 
-                  transition: 'left 0.3s cubic-bezier(0.4, 0.0, 0.2, 1)', 
-                  boxShadow: '0 2px 4px rgba(0,0,0,0.2)' 
-                }} />
+                <div style={{
+                  width: '20px', height: '20px', borderRadius: '50%', background: 'white',
+                  position: 'absolute', top: '2px', left: isAgentEnabled ? '22px' : '2px',
+                  transition: 'all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275)'
+                }}></div>
               </div>
             </div>
           )}
+
+          {/* Analyze Last 24 Hrs Button */}
           <button 
-            onClick={handleGenerateStandup} 
-            disabled={isGeneratingStandup} 
-            className="btn" 
-            title="Uses AI to generate a comprehensive Standup Report based on all team activity in the last 24 hours."
-            style={{ background: 'var(--accent-primary)', color: 'white', padding: '0.5rem 1rem' }}
+            className="btn-premium" 
+            onClick={handleGenerateStandup}
+            disabled={isGeneratingStandup}
+            style={{ background: 'linear-gradient(135deg, #8b5cf6, #6d28d9)', color: 'white', padding: '0.7rem 1.5rem', borderRadius: '8px', fontWeight: 'bold', fontSize: '1rem' }}
           >
-            {isGeneratingStandup ? 'Analyzing...' : '✨ Analyze Last 24 Hrs'}
+            {isGeneratingStandup ? 'Generating...' : '✨ Analyze Last 24 Hrs'}
           </button>
+
+          {/* New Task Button */}
           {(userRole === 'admin' || userRole === 'project_admin') && (
-            <button className="btn btn-primary" onClick={() => setShowForm(!showForm)}>
+            <button className="btn-premium" onClick={() => setShowForm(!showForm)} style={{ background: 'linear-gradient(135deg, #6d28d9, #4c1d95)', padding: '0.7rem 1.5rem', borderRadius: '8px', fontWeight: 'bold', fontSize: '1rem' }}>
               {showForm ? 'Cancel' : '+ New Task'}
             </button>
           )}
@@ -445,8 +500,8 @@ const ProjectTasks = ({ projectId, userRole }) => {
                   className="form-input" 
                   value={targetDate} 
                   onChange={(e) => setTargetDate(e.target.value)} 
-                  min={new Date().toISOString().split('T')[0]} // Prevents picking past dates
-                  style={{ flex: 1 }}
+                  min={new Date().toISOString().split('T')[0]} 
+                  style={{ flex: 1, colorScheme: 'dark' }}
                 />
                 <button 
                   type="button" 
@@ -459,6 +514,7 @@ const ProjectTasks = ({ projectId, userRole }) => {
                 </button>
               </div>
             </div>
+
             <button type="submit" className="btn btn-primary" style={{ width: '100%', padding: '0.8rem', fontSize: '1rem', marginTop: '0.5rem' }} disabled={isSubmitting}>
               {isSubmitting ? 'Creating...' : 'Create Task'}
             </button>
@@ -470,6 +526,7 @@ const ProjectTasks = ({ projectId, userRole }) => {
         <KanbanColumn title="To Do" items={todo} statusValue="todo" onDrop={handleDrop} onTaskClick={handleTaskClick} />
         <KanbanColumn title="In Progress" items={inProgress} statusValue="in_progress" onDrop={handleDrop} onTaskClick={handleTaskClick} />
         <KanbanColumn title="Done" items={done} statusValue="done" onDrop={handleDrop} onTaskClick={handleTaskClick} />
+        <KanbanColumn title="Blocked" items={blocked} statusValue="blocked" onDrop={handleDrop} onTaskClick={handleTaskClick} />
       </div>
 
       {selectedTaskId && (
@@ -514,6 +571,35 @@ const ProjectTasks = ({ projectId, userRole }) => {
                 </p>
               </div>
             )}
+          </div>
+        </div>
+      )}
+      {/* Custom Confirm Modal */}
+      {confirmMove && (
+        <div style={{
+          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+          background: 'rgba(15, 23, 42, 0.8)', backdropFilter: 'blur(4px)',
+          display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000
+        }}>
+          <div className="glass-panel" style={{ width: '90%', maxWidth: '400px', padding: '2rem', textAlign: 'center' }}>
+            <h3 style={{ color: 'var(--accent-primary)', marginBottom: '1rem' }}>Confirm Move</h3>
+            <p style={{ color: 'var(--text-secondary)', marginBottom: '2rem' }}>
+              Are you sure you want to move this task forward? Only Admins can move tasks backwards to a previous state.
+            </p>
+            <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center' }}>
+              <button 
+                className="btn btn-secondary" 
+                onClick={() => setConfirmMove(null)}
+              >
+                Cancel
+              </button>
+              <button 
+                className="btn btn-primary" 
+                onClick={() => executeDrop(confirmMove.taskId, confirmMove.newStatus)}
+              >
+                Yes, Move It
+              </button>
+            </div>
           </div>
         </div>
       )}
