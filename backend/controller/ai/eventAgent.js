@@ -35,10 +35,15 @@ export const triggerEventAgent = async (task, eventType, projectId, triggerUserI
                         ne(tasksTable.status, 'done')
                     ));
                 
-                let related = [];
-                for (const t of openTasks) {
+                // N+1 Fix: Compute all vectors concurrently
+                const tasksWithVectors = await Promise.all(openTasks.map(async (t) => {
                     const v = await createWeightedVector(t.title, t.description);
-                    const sim = cos_sim(vector, v);
+                    return { ...t, vector: v };
+                }));
+
+                let related = [];
+                for (const t of tasksWithVectors) {
+                    const sim = cos_sim(vector, t.vector);
                     if (sim > 0.4) {
                         related.push({ id: t.id, title: t.title, status: t.status, similarity: sim.toFixed(2) });
                     }
@@ -102,19 +107,36 @@ export const triggerEventAgent = async (task, eventType, projectId, triggerUserI
                     userSkills = Array.isArray(userInfo[0].skills) ? userInfo[0].skills : [userInfo[0].skills];
                 }
 
-                // Fetch all todo tasks
-                const allTodos = await db.select().from(tasksTable).where(and(eq(tasksTable.projectId, projectId), eq(tasksTable.status, 'todo')));
+                // Fetch all active tasks once (todo and in_progress) to build both our workload map and our todo list
+                const allActiveProjectTasks = await db.select().from(tasksTable)
+                    .where(and(eq(tasksTable.projectId, projectId), inArray(tasksTable.status, ['todo', 'in_progress'])));
+                
+                const allTodos = allActiveProjectTasks.filter(t => t.status === 'todo');
+                
+                // Build O(1) workload dictionary
+                const assigneeWorkloads = {};
+                for (const t of allActiveProjectTasks) {
+                    if (t.assigneeId) {
+                        assigneeWorkloads[t.assigneeId] = (assigneeWorkloads[t.assigneeId] || 0) + 1;
+                    }
+                }
+
+                // Pre-compute all embeddings in parallel
+                // This resolves the N+1 sequential await embeddings problem
+                const todosWithVectors = await Promise.all(allTodos.map(async (t) => {
+                    const vector = isNewcomer ? null : await createWeightedVector(t.title, t.description);
+                    return { ...t, vector };
+                }));
                 
                 let unassignedMatches = [];
                 let assignedMatches = [];
 
-                for (const t of allTodos) {
+                for (const t of todosWithVectors) {
                     let maxSimScore = 0;
-                    if (!isNewcomer) {
-                        const tVector = await createWeightedVector(t.title, t.description);
+                    if (!isNewcomer && t.vector) {
                         // Max Pooling: Find the highest similarity to ANY single past task
                         for (const comp of userCompletions) {
-                            const sim = cos_sim(comp.vector, tVector);
+                            const sim = cos_sim(comp.vector, t.vector);
                             if (sim > maxSimScore) maxSimScore = sim;
                         }
                     }
@@ -126,19 +148,11 @@ export const triggerEventAgent = async (task, eventType, projectId, triggerUserI
                             similarity: isNewcomer ? "N/A" : maxSimScore.toFixed(2)
                         });
                     } else if (maxSimScore > 0.4) {
-                        // Check assignee workload
-                        const activeTasks = await db.select().from(tasksTable)
-                            .where(and(
-                                eq(tasksTable.assigneeId, t.assigneeId),
-                                eq(tasksTable.projectId, projectId),
-                                inArray(tasksTable.status, ['todo', 'in_progress'])
-                            ));
-                        
                         assignedMatches.push({
                             id: t.id,
                             title: t.title,
                             currentAssigneeId: t.assigneeId,
-                            currentAssigneeWorkload: activeTasks.length,
+                            currentAssigneeWorkload: assigneeWorkloads[t.assigneeId] || 0,
                             similarity: maxSimScore.toFixed(2)
                         });
                     }
@@ -227,23 +241,28 @@ If no action is needed, set shouldNotify: false.`;
         const userMessage = `Event: ${eventType} on Task ID: ${task.id}.\nCurrent Status: ${task.status}.\n${assigneeContext}\nPlease analyze.`;
         let response = await chat.sendMessage({ message: userMessage });
 
-        while (response.functionCalls && response.functionCalls.length > 0) {
-            const call = response.functionCalls[0];
-            const func = functions[call.name];
-            let result;
-            if (func) {
-                result = await func(call.args);
-            } else {
-                result = { error: "Function not found" };
-            }
-            response = await chat.sendMessage({
-                message: [{
+        let loopCount = 0;
+        while (response.functionCalls && response.functionCalls.length > 0 && loopCount < 5) {
+            const functionResponses = await Promise.all(response.functionCalls.map(async (call) => {
+                const func = functions[call.name];
+                let result;
+                if (func) {
+                    result = await func(call.args);
+                } else {
+                    result = { error: "Function not found" };
+                }
+                return {
                     functionResponse: {
                         name: call.name,
                         response: { data: result }
                     }
-                }]
+                };
+            }));
+
+            response = await chat.sendMessage({
+                message: functionResponses
             });
+            loopCount++;
         }
 
         const rawText = response.text || "";
