@@ -1,9 +1,9 @@
-import { tasksTable, projectsTable } from "../../models/index.js";
+import { tasksTable, projectsTable, projectMembers } from "../../models/index.js";
 import { db } from "../../db/index.js";
 import { getIO } from "../../config/socket.js";
 import { createNotification } from "../../services/addNotification.js";
-import { eq } from "drizzle-orm";
-import { runAiAdvisorInBackground } from "./aiAdvisor.js";
+import { eq, and } from "drizzle-orm";
+import { triggerEventAgent } from "../ai/eventAgent.js";
 import { ingestMemory } from "../../services/memoryIngestion.js";
 
 export const createTask = async function(req, res) {
@@ -13,6 +13,16 @@ export const createTask = async function(req, res) {
 
         if (!title) {
             return res.status(400).json({ message: "Task title is required" });
+        }
+
+        // RBAC Strict Enforcement: Only Admins can create tasks
+        const memberInfo = await db.select().from(projectMembers)
+            .where(and(eq(projectMembers.projectId, projectId), eq(projectMembers.userId, req.user.id)))
+            .limit(1);
+
+        const userRole = memberInfo[0]?.role || 'member';
+        if (!['admin', 'project_admin'].includes(userRole)) {
+            return res.status(403).json({ message: "Forbidden: Only Admins can create tasks." });
         }
 
         const newTask = await db.insert(tasksTable).values({
@@ -35,7 +45,7 @@ export const createTask = async function(req, res) {
 
         // Trigger the Agentic AI in the background ONLY if the user left the toggle ON
         if (isAgentEnabled) {
-            runAiAdvisorInBackground(newTask[0], projectId, req.user.id).catch(console.error);
+            triggerEventAgent(newTask[0], 'TASK_CREATED', projectId, req.user.id).catch(console.error);
         }
 
         // Ingest into Project Brain (RAG Vector Database) in the background

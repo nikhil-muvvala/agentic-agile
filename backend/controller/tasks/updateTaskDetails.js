@@ -4,6 +4,7 @@ import { eq, and } from "drizzle-orm";
 import { getIO } from "../../config/socket.js";
 import { createNotification } from "../../services/addNotification.js";
 import { ingestMemory } from "../../services/memoryIngestion.js";
+import { triggerEventAgent } from "../ai/eventAgent.js";
 
 export const updateTaskDetails = async function(req, res) {
     try {
@@ -38,9 +39,12 @@ export const updateTaskDetails = async function(req, res) {
         // Emit real-time event to the specific project room!
         getIO().to(`project_${projectId}`).emit("task_updated", {
             message: "Task details updated",
+            task: updatedTask,
             taskId: taskId,
             updatedFields: updateData
         });
+
+        triggerEventAgent(updatedTask, 'TASK_MODIFIED', projectId, req.user.id).catch(console.error);
 
         if (updateData.assigneeId) {
             const [projectInfo] = await db.select().from(projectsTable).where(eq(projectsTable.id, projectId));

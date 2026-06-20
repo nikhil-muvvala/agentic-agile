@@ -1,10 +1,11 @@
 import { db } from "../../db/index.js";
-import { tasksTable } from "../../models/index.js";
+import { tasksTable, projectMembers } from "../../models/index.js";
 import { eq, and } from "drizzle-orm";
 import { getIO } from "../../config/socket.js";
 import { taskCompletionsTable } from "../../models/taskCompletions.js";
 import { createWeightedVector } from "../../utils/aiGatekeeper.js";
 import { ingestMemory } from "../../services/memoryIngestion.js";
+import { triggerEventAgent } from "../ai/eventAgent.js";
 
 export const updateTaskStatus = async function(req, res) {
     try {
@@ -14,6 +15,39 @@ export const updateTaskStatus = async function(req, res) {
 
         if (!status || !["todo", "in_progress", "blocked", "done"].includes(status)) {
             return res.status(400).json({ message: "Invalid or missing status. Must be todo, in_progress, blocked, or done." });
+        }
+
+        const existingTask = await db.select().from(tasksTable)
+            .where(and(eq(tasksTable.id, taskId), eq(tasksTable.projectId, projectId)))
+            .limit(1);
+
+        if (!existingTask[0]) {
+            return res.status(404).json({ message: "Task not found in this project" });
+        }
+
+        // RBAC Strict Agile Workflows
+        const memberInfo = await db.select().from(projectMembers)
+            .where(and(eq(projectMembers.projectId, projectId), eq(projectMembers.userId, req.user.id)))
+            .limit(1);
+            
+        const userRole = memberInfo[0]?.role || 'member';
+        const currentStatus = existingTask[0].status;
+        
+        const strictOrder = ['todo', 'in_progress', 'done', 'blocked'];
+        
+        if (!['admin', 'project_admin'].includes(userRole)) {
+            // Rule 0: Cannot move other people's tasks
+            if (existingTask[0].assigneeId && existingTask[0].assigneeId !== req.user.id) {
+                return res.status(403).json({ message: "Forbidden: You cannot move tasks assigned to other members." });
+            }
+
+            // Rule 1: Cannot move backwards
+            const currentIndex = strictOrder.indexOf(currentStatus);
+            const targetIndex = strictOrder.indexOf(status);
+            
+            if (targetIndex < currentIndex) {
+                return res.status(403).json({ message: "Forbidden: Only Admins can move tasks backwards." });
+            }
         }
 
         const [updatedTask] = await db
@@ -26,10 +60,6 @@ export const updateTaskStatus = async function(req, res) {
                 )
             )
             .returning();
-
-        if (!updatedTask) {
-            return res.status(404).json({ message: "Task not found in this project" });
-        }
 
             // The Skill-Memory Agent Hook
 
@@ -77,6 +107,13 @@ export const updateTaskStatus = async function(req, res) {
             taskId: taskId,
             newStatus: status
         });
+
+        // The Event-Driven Agent Hook
+        // Optimization: Only wake the AI for critical Agile events that require analysis 
+        // (Freeing up capacity or encountering a blocker). Saves API calls on routine in_progress moves!
+        if (['done', 'blocked'].includes(status)) {
+            triggerEventAgent(updatedTask, 'TASK_STATUS_CHANGED', projectId, req.user.id).catch(console.error);
+        }
 
         return res.status(200).json({ message: "Task status updated successfully", task: updatedTask });
 
