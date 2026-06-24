@@ -1,5 +1,7 @@
 import express from "express";
 import http from "http";
+import swaggerUi from 'swagger-ui-express';
+import YAML from 'yamljs';
 import { initSocket } from "./config/socket.js";
 import authRouter from "./router/authRoutes.js";
 import projectRouter from "./router/projectManagementRoutes.js";
@@ -32,6 +34,23 @@ app.get("/api/v1/healthcheck", (req, res) => {
     });
 });
 app.use(express.json());
+
+// it converts the generated swagger.yaml from openapi to json and stored in this swaggerDocument
+const swaggerDocument = YAML.load('./swagger.yaml');
+
+swaggerDocument.servers = [{ url: 'http://localhost:3000/api/v1', description: 'Local Development Server' }];
+// Adding Authorize button for JWT Token
+swaggerDocument.components = swaggerDocument.components || {};
+swaggerDocument.components.securitySchemes = {
+  bearerAuth: {
+    type: 'http', // it means http header
+    scheme: 'bearer', // with authorization : starts with bearer
+    bearerFormat: 'JWT'
+  }
+};
+swaggerDocument.security = [{ bearerAuth: [] }]; // al endpoints are locked with bearerAuth 
+
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
 app.use("/api/v1/auth", authRouter);
 app.use("/api/v1/projects", projectRouter);
 app.use("/api/v1/projects", teamRouter);
