@@ -29,7 +29,9 @@ export const deleteTask = async function(req, res) {
 
         // Trigger Event Agent (Wait for it to finish, or run async?)
         // Let's run it async so it doesn't block the deletion response
-        triggerEventAgent(taskToDelete, 'TASK_DELETED', projectId, req.user.id).catch(console.error);
+        if (process.env.NODE_ENV !== 'test') {
+            triggerEventAgent(taskToDelete, 'TASK_DELETED', projectId, req.user.id).catch(console.error);
+        }
 
         // Emit the deletion event via WebSockets so it disappears from everyone's screen in real-time
         getIO().to(`project_${projectId}`).emit("task_deleted", { taskId });

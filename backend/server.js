@@ -78,4 +78,9 @@ const startServer = async () => {
     }
 };
 
-startServer();
+// Only start the server automatically if we are not in a test environment
+if (process.env.NODE_ENV !== 'test') {
+    startServer();
+}
+
+export { app };

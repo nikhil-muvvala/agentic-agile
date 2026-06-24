@@ -9,7 +9,7 @@ import { ingestMemory } from "../../services/memoryIngestion.js";
 export const createTask = async function(req, res) {
     try {
         const projectId = parseInt(req.params.projectId);
-        const { title, description, assigneeId, isAgentEnabled, targetDate } = req.body;
+        const { title, description, assigneeId=null, isAgentEnabled=false, targetDate } = req.body;
 
         if (!title) {
             return res.status(400).json({ message: "Task title is required" });
@@ -44,14 +44,16 @@ export const createTask = async function(req, res) {
         }
 
         // Trigger the Agentic AI in the background ONLY if the user left the toggle ON
-        if (isAgentEnabled) {
+        if (isAgentEnabled && process.env.NODE_ENV !== 'test') {
             triggerEventAgent(newTask[0], 'TASK_CREATED', projectId, req.user.id).catch(console.error);
         }
 
         // Ingest into Project Brain (RAG Vector Database) in the background
         const assigneeContext = assigneeId ? `Assigned to user ID ${assigneeId}.` : "Unassigned.";
         const memoryContent = `Task Title: ${title}\nDescription: ${description || 'No description provided.'}\nStatus: todo\n${assigneeContext}`;
-        ingestMemory(projectId, memoryContent, "task_creation", newTask[0].id).catch(console.error);
+        if (process.env.NODE_ENV !== 'test') {
+            ingestMemory(projectId, memoryContent, "task_creation", newTask[0].id).catch(console.error);
+        }
 
         return res.status(201).json({ 
             message: "Task created successfully", 

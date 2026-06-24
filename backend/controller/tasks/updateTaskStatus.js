@@ -111,7 +111,7 @@ export const updateTaskStatus = async function(req, res) {
         // The Event-Driven Agent Hook
         // Optimization: Only wake the AI for critical Agile events that require analysis 
         // (Freeing up capacity or encountering a blocker). Saves API calls on routine in_progress moves!
-        if (['done', 'blocked'].includes(status)) {
+        if (['done', 'blocked'].includes(status) && process.env.NODE_ENV !== 'test') {
             triggerEventAgent(updatedTask, 'TASK_STATUS_CHANGED', projectId, req.user.id).catch(console.error);
         }
 

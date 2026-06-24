@@ -10,9 +10,9 @@ export const tasksTable = pgTable("tasks", {
     title: varchar({ length: 255 }).notNull(),
     description: text(),
     status: taskStatusEnum().default("todo").notNull(),
-    // Using restrict as you requested! Making it nullable so tasks don't have to be assigned immediately.
-    assigneeId: integer().references(() => usersTable.id, { onDelete: "restrict" }),
-    createdBy: integer().references(() => usersTable.id, { onDelete: "restrict" }),
+    // Using set null! If a user is deleted, the task remains but becomes unassigned/creator unknown.
+    assigneeId: integer().references(() => usersTable.id, { onDelete: "set null" }),
+    createdBy: integer().references(() => usersTable.id, { onDelete: "set null" }),
     createdAt: timestamp().defaultNow().notNull(),
     updatedAt: timestamp().defaultNow().$onUpdateFn(() => new Date()).notNull(),
     targetDate: timestamp('target_date')
