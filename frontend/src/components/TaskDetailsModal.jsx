@@ -3,6 +3,7 @@ import { AuthContext } from '../context/AuthContext';
 import api from '../services/api';
 import { SocketContext } from '../context/SocketContext';
 import ConfirmModal from './ConfirmModal';
+import axios from 'axios';
 
 const isUrgentTask = (targetDate, status) => {
   if (!targetDate || status === 'done') return false;
@@ -198,9 +199,12 @@ const TaskDetailsModal = ({ projectId, taskId, onClose, userRole, members }) => 
 
     try {
       setUploadingFile(true);
-      await api.post(`/tasks/${projectId}/t/${taskId}/attachments`, formData, {
+      const token = localStorage.getItem('token');
+      const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3000';
+      
+      await axios.post(`${BACKEND_URL}/api/v1/tasks/${projectId}/t/${taskId}/attachments`, formData, {
         headers: {
-          'Content-Type': 'multipart/form-data'
+          Authorization: `Bearer ${token}`
         }
       });
     } catch (err) {

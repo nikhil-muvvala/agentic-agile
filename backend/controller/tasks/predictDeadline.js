@@ -1,6 +1,4 @@
-import { GoogleGenAI } from '@google/genai';
-
-const aiClient = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+import { aiClient } from '../../config/ai.js';
 
 export const predictDeadline = async function(req, res) {
     try {

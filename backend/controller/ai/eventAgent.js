@@ -10,6 +10,7 @@ import { cos_sim } from '@xenova/transformers';
 const aiClient = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 
 export const triggerEventAgent = async (task, eventType, projectId, triggerUserId) => {
+    if (process.env.NODE_ENV === 'test') return;
     try {
         console.log(`[EventAgent] Waking up for Task #${task.id} (${eventType})`);
 

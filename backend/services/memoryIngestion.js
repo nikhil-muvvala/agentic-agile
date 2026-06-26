@@ -43,6 +43,7 @@ function chunkText(text, maxChars = 400) {
  * Ingests a new memory into the pgvector database.
  */
 export const ingestMemory = async (projectId, content, memoryType, sourceId) => {
+    if (process.env.NODE_ENV === 'test') return;
     try {
         console.log(`[Memory Ingestion] Processing new '${memoryType}' for project ${projectId}...`);
         

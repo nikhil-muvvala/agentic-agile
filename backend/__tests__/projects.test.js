@@ -1,4 +1,4 @@
-import { jest } from '@jest/globals';
+import { vi } from 'vitest';
 import request from 'supertest';
 import { app } from '../server.js';
 import { db } from '../db/index.js';

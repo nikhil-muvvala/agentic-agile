@@ -41,16 +41,22 @@ export const initSocket = (server) => {
     console.log(`✅ User Connected to WebSockets: ${socket.user.name} (${socket.id})`);
     socket.join(`user_${socket.user.id}`);
     // Listen for a custom event from the frontend telling us which project they opened
-    socket.on("join_project_room", (projectId) => {
+    socket.on("join_project_room", (projectId, callback) => {
       const roomName = `project_${projectId}`;
       socket.join(roomName);
       console.log(`User ${socket.user.name} joined room: ${roomName}`);
+      if (typeof callback === 'function') {
+        callback({ success: true });
+      }
     });
 
-    socket.on("leave_project_room", (projectId) => {
+    socket.on("leave_project_room", (projectId,callback) => {
       const roomName = `project_${projectId}`;
       socket.leave(roomName);
       console.log(`User ${socket.user.name} left room: ${roomName}`);
+      if (typeof callback === 'function') {
+        callback({ success: true });
+      }
     });
 
     socket.on("disconnect", () => {
